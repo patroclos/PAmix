@@ -1,0 +1,3 @@
+-xc++
+-Iinclude
+-std=c++11
