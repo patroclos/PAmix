@@ -301,13 +301,11 @@ void PAInterface::notifySubscription(const pai_subscription_type_t type)
 
 std::map<uint32_t, InputInfo> &PAInterface::getInputInfo()
 {
-	mainloop_lockguard lg(m_Mainloop);
 	return m_Sinkinputinfos;
 }
 
 std::map<uint32_t, SinkInfo> &PAInterface::getSinkInfo()
 {
-	mainloop_lockguard lg(m_Mainloop);
 	return m_Sinkinfos;
 }
 
