@@ -1,8 +1,9 @@
-#include <signal.h>
+#include <queue>
 #include <condition_variable>
 #include <mutex>
 #include <ncurses.h>
 #include <painterface.h>
+#include <signal.h>
 #include <string>
 #include <thread>
 
@@ -14,21 +15,31 @@ std::map<uint32_t, double> lastPeaks;
 #define DECAY_STEP 0.04
 std::mutex screenMutex;
 
-bool redrawAll = false;
+//debug vars
+int numSignals = 0;
+int numWaits   = 0;
 
 std::map<uint32_t, unsigned> mapMonitorLines;
 
 // sync main and callback threads
-bool                    doUpdate = false;
 std::mutex              updMutex;
 std::condition_variable cv;
+
+struct UpdateData
+{
+	bool redrawAll;
+	UpdateData()=default;
+	UpdateData(bool redrawAll){this->redrawAll=redrawAll;}
+};
+
+std::queue<UpdateData> updateDataQ;
 
 void signal_update(bool all)
 {
 	{
 		std::lock_guard<std::mutex> lk(updMutex);
-		doUpdate  = true;
-		redrawAll = all;
+		updateDataQ.push(UpdateData(all));
+		numSignals++;
 	}
 	cv.notify_one();
 }
@@ -56,6 +67,7 @@ void updatesinks(PAInterface *interface)
 
 	clear();
 	printw("selected: %d redraws: %d numSinkInfo: %d numInputInfo: %d", selected, numRedraws, interface->getSinkInfo().size(), interface->getInputInfo().size());
+	printw("Waits: %d, Sigs: %d", numWaits, numSignals);
 
 	unsigned y     = 3;
 	int      index = 0;
@@ -181,14 +193,18 @@ int main(int argc, char **argv)
 	std::thread inputT(inputThread, &pai);
 	inputT.detach();
 
-	updatesinks(&pai);
+	signal_update(true);
 	while (running)
 	{
+		std::unique_lock<std::mutex> lk(updMutex);
+		cv.wait(lk, [] { return !updateDataQ.empty(); });
+		numWaits++;
+
 		for (iter_inputinfo_t it = pai.getInputInfo().begin(); it != pai.getInputInfo().end(); it++)
 			if (!it->second.m_Monitor)
 				pai.createMonitorStreamForSinkInput(it);
 
-		if (redrawAll)
+		if (updateDataQ.front().redrawAll)
 		{
 			updatesinks(&pai);
 		}
@@ -196,13 +212,7 @@ int main(int argc, char **argv)
 		{
 			updateMonitors(&pai);
 		}
-
-		redrawAll = false;
-		doUpdate  = false;
-
-		std::unique_lock<std::mutex> lk(updMutex);
-		cv.wait(lk, [] { return doUpdate; });
-		lk.unlock();
+		updateDataQ.pop();
 	}
 	endwin();
 	return 0;

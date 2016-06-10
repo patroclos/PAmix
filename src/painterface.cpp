@@ -289,7 +289,6 @@ int PAInterface::createMonitorStreamForSinkInput(iter_inputinfo_t &iiiter)
 void PAInterface::subscribe(pai_subscription_cb callback)
 {
 	m_Subscription_callback = callback;
-	notifySubscription(0);
 }
 
 void PAInterface::notifySubscription(const pai_subscription_type_t type)
