@@ -93,14 +93,6 @@ void updatesinks(PAInterface *interface)
 		y += 3;
 	}
 
-#if 0
-	//display monitors
-	for (iter_inputinfo_t it = interface->getInputInfo().begin(); it != interface->getInputInfo().end(); it++)
-	{
-		mvprintw(y++, 1, "input: %d monitorstream: %p", it->first, it->second.m_Monitor);
-	}
-#endif
-
 	refresh();
 }
 

@@ -216,7 +216,7 @@ void PAInterface::_updateInputs(PAInterface *interface)
 		}
 		else
 		{
-			if(!it->second.m_Monitor)
+			if (!it->second.m_Monitor)
 				interface->createMonitorStreamForSinkInput(it);
 			it++;
 		}
