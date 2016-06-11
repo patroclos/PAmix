@@ -15,10 +15,6 @@ std::map<uint32_t, double> lastPeaks;
 #define DECAY_STEP 0.04
 std::mutex screenMutex;
 
-//debug vars
-int numSignals = 0;
-int numWaits   = 0;
-
 std::map<uint32_t, unsigned> mapMonitorLines;
 
 // sync main and callback threads
@@ -39,7 +35,6 @@ void signal_update(bool all)
 	{
 		std::lock_guard<std::mutex> lk(updMutex);
 		updateDataQ.push(UpdateData(all));
-		numSignals++;
 	}
 	cv.notify_one();
 }
@@ -67,7 +62,6 @@ void updatesinks(PAInterface *interface)
 
 	clear();
 	printw("selected: %d redraws: %d numSinkInfo: %d numInputInfo: %d", selected, numRedraws, interface->getSinkInfo().size(), interface->getInputInfo().size());
-	printw("Waits: %d, Sigs: %d", numWaits, numSignals);
 
 	unsigned y     = 3;
 	int      index = 0;
@@ -198,11 +192,6 @@ int main(int argc, char **argv)
 	{
 		std::unique_lock<std::mutex> lk(updMutex);
 		cv.wait(lk, [] { return !updateDataQ.empty(); });
-		numWaits++;
-
-		for (iter_inputinfo_t it = pai.getInputInfo().begin(); it != pai.getInputInfo().end(); it++)
-			if (!it->second.m_Monitor)
-				pai.createMonitorStreamForSinkInput(it);
 
 		if (updateDataQ.front().redrawAll)
 		{

@@ -75,7 +75,7 @@ private:
 	static void cb_sink_input_info(pa_context *context, const pa_sink_input_info *info, int eol, void *interface);
 	static void cb_sink_info(pa_context *context, const pa_sink_info *info, int eol, void *interface);
 	static void cb_read(pa_stream *stream, size_t nbytes, void *interface);
-	static void cb_suspend(pa_stream *stream, void *interface);
+	static void cb_stream_state(pa_stream *stream, void *inputinfo);
 
 	static void _updateInputs(PAInterface *interface);
 	static void _updateSinks(PAInterface *interface);
@@ -85,6 +85,7 @@ private:
 	void updateInputs();
 	void updateSinks();
 	void notifySubscription(const pai_subscription_type_t);
+	int createMonitorStreamForSinkInput(iter_inputinfo_t &iiiter);
 
 public:
 	PAInterface(const char *context_name);
@@ -97,5 +98,4 @@ public:
 	std::map<uint32_t, SinkInfo> &getSinkInfo();
 
 	void addVolume(const uint32_t inputidx, const double pctDelta);
-	int createMonitorStreamForSinkInput(iter_inputinfo_t &iiiter);
 };

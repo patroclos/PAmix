@@ -184,15 +184,19 @@ void PAInterface::cb_read(pa_stream *stream, size_t nbytes, void *interface)
 	((PAInterface *)interface)->notifySubscription(PAI_SUBSCRIPTION_MASK_PEAK);
 }
 
-void PAInterface::cb_suspend(pa_stream *stream, void *interface)
+void PAInterface::cb_stream_state(pa_stream *stream, void *inputinfo)
 {
+	pa_stream_state_t state = pa_stream_get_state(stream);
+	if (state == PA_STREAM_TERMINATED || state == PA_STREAM_FAILED)
+	{
+		((InputInfo *)inputinfo)->m_Monitor = nullptr;
+	}
 }
 
 void PAInterface::_updateInputs(PAInterface *interface)
 {
 	mainloop_lockguard lg(interface->m_Mainloop);
-	//dont clear, set kill flags to true and toggle in infocb then erase infos w/ flags afer operation
-	//interface->m_Sinkinputinfos.clear();
+
 	for (iter_inputinfo_t it = interface->m_Sinkinputinfos.begin(); it != interface->m_Sinkinputinfos.end(); it++)
 		it->second.m_Kill = true;
 
@@ -212,6 +216,8 @@ void PAInterface::_updateInputs(PAInterface *interface)
 		}
 		else
 		{
+			if(!it->second.m_Monitor)
+				interface->createMonitorStreamForSinkInput(it);
 			it++;
 		}
 	}
@@ -243,8 +249,6 @@ void PAInterface::updateSinks()
 
 int PAInterface::createMonitorStreamForSinkInput(iter_inputinfo_t &iiiter)
 {
-	mainloop_lockguard lg(m_Mainloop);
-
 	if (!m_Sinkinfos.count(iiiter->second.m_Sink))
 		return -1;
 	uint32_t   monitorsrc = m_Sinkinfos[iiiter->second.m_Sink].m_MonitorSource;
@@ -279,7 +283,7 @@ int PAInterface::createMonitorStreamForSinkInput(iter_inputinfo_t &iiiter)
 	pa_stream_set_monitor_stream(ii.m_Monitor, iiiter->first);
 
 	pa_stream_set_read_callback(ii.m_Monitor, &PAInterface::cb_read, this);
-	pa_stream_set_suspended_callback(ii.m_Monitor, &PAInterface::cb_suspend, this);
+	pa_stream_set_state_callback(ii.m_Monitor, &PAInterface::cb_stream_state, &ii);
 
 	flags = (pa_stream_flags_t)(PA_STREAM_DONT_MOVE | PA_STREAM_PEAK_DETECT | PA_STREAM_ADJUST_LATENCY);
 	assert(pa_stream_connect_record(ii.m_Monitor, NULL, &attr, flags) >= 0);
