@@ -1,8 +1,9 @@
-#include <queue>
+#include <locale.h>
 #include <condition_variable>
 #include <mutex>
 #include <ncurses.h>
 #include <painterface.h>
+#include <queue>
 #include <signal.h>
 #include <string>
 #include <thread>
@@ -24,8 +25,8 @@ std::condition_variable cv;
 struct UpdateData
 {
 	bool redrawAll;
-	UpdateData()=default;
-	UpdateData(bool redrawAll){this->redrawAll=redrawAll;}
+	UpdateData() = default;
+	UpdateData(bool redrawAll) { this->redrawAll = redrawAll; }
 };
 
 std::queue<UpdateData> updateDataQ;
@@ -61,7 +62,7 @@ void updatesinks(PAInterface *interface)
 		selected = 0;
 
 	clear();
-	printw("selected: %d redraws: %d numSinkInfo: %d numInputInfo: %d", selected, numRedraws, interface->getSinkInfo().size(), interface->getInputInfo().size());
+	printw("Selected SinkInput: %d", selected);
 
 	unsigned y     = 3;
 	int      index = 0;
@@ -85,12 +86,31 @@ void updatesinks(PAInterface *interface)
 		mvprintw(y++, 1, peakbar.c_str());
 
 		//mark selected input with arrow in front of name
-		std::string descline = "%s  %.2fdB %.2f%%";
+		std::string descline = "%s  %.2fdB %.2f%% %s";
 		if (selected == index++)
-			descline.insert(0, "--> ");
+			descline.insert(0, "▶ ");
 
-		mvprintw(y++, 1, descline.c_str(), appname.c_str(), dB, vol * 100);
-		y += 3;
+		mvprintw(y++, 1, descline.c_str(), appname.c_str(), dB, vol * 100, it->second.m_Mute ? "🔇" : "");
+		//append sinkname
+		int px = 0, py = 0;
+		int space = 0;
+		getyx(stdscr, py, px);
+		space = COLS - px - 3;
+
+		std::string sinkname = interface->getSinkInfo()[it->second.m_Sink].m_Name;
+		if (space < sinkname.size())
+		{
+			sinkname = sinkname.substr(0, space - 3);
+			sinkname.append("...");
+			space = 0;
+		}
+		else
+		{
+			space -= sinkname.size();
+		}
+		mvprintw(py, px + space, sinkname.c_str());
+
+		y += 1;
 	}
 
 	refresh();
@@ -110,17 +130,43 @@ void updateMonitors(PAInterface *interface)
 void change_volume(double pctDelta, PAInterface *interface)
 {
 	iter_inputinfo_t it = interface->getInputInfo().begin();
-	for (int i = 0; i < selected; i++)
-		it++;
+	std::advance(it, selected);
 	interface->addVolume(it->first, pctDelta);
+}
+
+void change_sink(bool increment, PAInterface *interface)
+{
+	iter_inputinfo_t iit = interface->getInputInfo().begin();
+	std::advance(iit, selected);
+	iter_sinkinfo_t sit = interface->getSinkInfo().find(iit->second.m_Sink);
+
+	if (increment)
+		sit++;
+	else
+	{
+		if(sit==interface->getSinkInfo().begin())
+			sit=std::next(sit, interface->getSinkInfo().size()-1);
+		else
+			sit--;
+	}
+
+	if (sit == interface->getSinkInfo().end())
+		sit = interface->getSinkInfo().begin();
+
+	interface->setInputSink(iit->first, sit->first);
+}
+
+void mute_input(PAInterface *interface)
+{
+	iter_inputinfo_t it = std::next(interface->getInputInfo().begin(), selected);
+	interface->setMute(it->first, !it->second.m_Mute);
 }
 
 void inputThread(PAInterface *interface)
 {
 	while (running)
 	{
-		bool sig = false;
-		int  ch  = getch();
+		int ch = getch();
 		switch (ch)
 		{
 		case 'h':
@@ -131,23 +177,27 @@ void inputThread(PAInterface *interface)
 			break;
 		case 'j':
 			selected = (selected + 1) % interface->getInputInfo().size();
-			sig      = true;
+			signal_update(true);
 			break;
 		case 'k':
 			selected = (selected - 1) % interface->getInputInfo().size();
-			sig      = true;
+			signal_update(true);
+			break;
+		case 's':
+			change_sink(true, interface);
+			break;
+		case 'S':
+			change_sink(false, interface);
+			break;
+		case 'm':
+			mute_input(interface);
 			break;
 		case 'q':
 			running = false;
-			sig     = true;
+			signal_update(false);
 			break;
 		default:
 			break;
-		}
-
-		if (sig)
-		{
-			signal_update(true);
 		}
 	}
 }
@@ -166,6 +216,7 @@ void sig_handle_resize(int s)
 
 int main(int argc, char **argv)
 {
+	setlocale(LC_ALL, "");
 	initscr();
 	curs_set(0); // make cursor invisible
 	noecho();

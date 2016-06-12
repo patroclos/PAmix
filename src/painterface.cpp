@@ -27,11 +27,6 @@ InputInfo::~InputInfo()
 	}
 }
 
-SinkInfo::SinkInfo(const pa_sink_info *info)
-{
-	m_MonitorSource = info->monitor_source;
-}
-
 void InputInfo::update(const pa_sink_input_info *info)
 {
 	m_Sink     = info->sink;
@@ -39,6 +34,13 @@ void InputInfo::update(const pa_sink_input_info *info)
 	m_Appname  = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME);
 	m_Volume   = pa_cvolume_avg(&info->volume);
 	m_Kill     = false;
+	m_Mute     = info->mute;
+}
+
+SinkInfo::SinkInfo(const pa_sink_info *info)
+{
+	m_MonitorSource = info->monitor_source;
+	m_Name          = pa_proplist_gets(info->proplist, PA_PROP_DEVICE_DESCRIPTION);
 }
 
 PAInterface::PAInterface(const char *context_name)
@@ -358,4 +360,23 @@ void PAInterface::addVolume(const uint32_t inputidx, const double pctDelta)
 		pa_threaded_mainloop_wait(m_Mainloop);
 	pa_operation_unref(op);
 	delete volume;
+}
+
+void PAInterface::setInputSink(const uint32_t inputidx, const uint32_t sinkidx)
+{
+	mainloop_lockguard lg(m_Mainloop);
+	pa_operation *     op = pa_context_move_sink_input_by_index(m_Context, inputidx, sinkidx, &PAInterface::cb_success, this);
+	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
+		pa_threaded_mainloop_wait(m_Mainloop);
+	pa_operation_unref(op);
+}
+
+void PAInterface::setMute(const uint32_t inputidx, bool mute)
+{
+	mainloop_lockguard lg(m_Mainloop);
+	pa_operation *     op = pa_context_set_sink_input_mute(m_Context, inputidx, mute, &PAInterface::cb_success, this);
+
+	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
+		pa_threaded_mainloop_wait(m_Mainloop);
+	pa_operation_unref(op);
 }

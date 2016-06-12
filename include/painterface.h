@@ -23,6 +23,7 @@ struct InputInfo
 	double      m_Peak;
 	pa_volume_t m_Volume;
 	bool        m_Kill;
+	bool        m_Mute;
 
 	InputInfo(const pa_sink_input_info *info);
 	InputInfo() = default;
@@ -33,7 +34,8 @@ struct InputInfo
 
 struct SinkInfo
 {
-	uint32_t m_MonitorSource;
+	uint32_t    m_MonitorSource;
+	std::string m_Name;
 
 	SinkInfo(const pa_sink_info *info);
 	SinkInfo() = default;
@@ -98,4 +100,8 @@ public:
 	std::map<uint32_t, SinkInfo> &getSinkInfo();
 
 	void addVolume(const uint32_t inputidx, const double pctDelta);
+
+	void setInputSink(const uint32_t inputidx, const uint32_t sinkidx);
+
+	void setMute(const uint32_t inputidx, bool mute);
 };

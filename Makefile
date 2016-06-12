@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-Wall -O2 -lncurses -lpulse -std=c++11 -Iinclude -g
+CFLAGS=-Wall -O2 -lncursesw -lpulse -std=c++11 -Iinclude -g
 
 SRCFOLDER=src
 INCFOLDER=include
