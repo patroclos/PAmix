@@ -7,10 +7,15 @@
 
 # Keybindings #
 decrease volume: h
+
 increase volume: l
+
 down:            j
+
 up:              k
+
 un/mute:         m
+
 next/prev sink:  s/S
 
 # Planned Features #
