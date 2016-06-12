@@ -6,6 +6,8 @@
 	- change volume
 
 # Keybindings #
+quit:            q
+
 decrease volume: h
 
 increase volume: l
