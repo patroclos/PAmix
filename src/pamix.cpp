@@ -1,7 +1,7 @@
 #include <locale.h>
 #include <condition_variable>
 #include <mutex>
-#include <ncurses.h>
+#include <ncursesw/ncurses.h>
 #include <painterface.h>
 #include <queue>
 #include <signal.h>
@@ -40,13 +40,13 @@ void signal_update(bool all)
 	cv.notify_one();
 }
 
-std::string generateVolumeMeter(double vol, unsigned padding = 1)
+std::wstring generateVolumeMeter(double vol, unsigned padding = 1)
 {
 	double      maxvol   = 1.5;
-	std::string meter    = "[]";
+	std::wstring meter    = L"  ";
 	int         segments = COLS - 2 * padding - 2;
 	int         filled   = vol / maxvol * (double)segments;
-	meter.insert(1, filled, '#');
+	meter.insert(1, filled, L'▮');
 	meter.insert(filled + 1, segments - filled, ' ');
 	return meter;
 }
@@ -74,23 +74,24 @@ void updatesinks(PAInterface *interface)
 		double       dB      = pa_sw_volume_to_dB(avgvol);
 		double       vol     = avgvol / (double)PA_VOLUME_NORM;
 
-		std::string volbar = generateVolumeMeter(vol);
+		std::wstring volbar = generateVolumeMeter(vol);
 
-		mvprintw(y++, 1, volbar.c_str());
+		mvaddwstr(y++, 1, volbar.c_str());
 
 		double peak = it->second.m_Peak;
 
-		std::string peakbar = generateVolumeMeter(peak);
+		std::wstring peakbar = generateVolumeMeter(peak);
 
 		mapMonitorLines[it->first] = y;
-		mvprintw(y++, 1, peakbar.c_str());
+		mvaddwstr(y++, 1, peakbar.c_str());
 
 		//mark selected input with arrow in front of name
 		std::string descline = "%s  %.2fdB %.2f%% %s";
 		if (selected == index++)
 			descline.insert(0, "▶ ");
 
-		mvprintw(y++, 1, descline.c_str(), appname.c_str(), dB, vol * 100, it->second.m_Mute ? "🔇" : "");
+		bool muted = it->second.m_Mute || it->second.m_Volume == PA_VOLUME_MUTED;
+		mvprintw(y++, 1, descline.c_str(), appname.c_str(), dB, vol * 100, muted ? "🔇" : "");
 		//append sinkname
 		int px = 0, py = 0;
 		int space = 0;
@@ -121,8 +122,8 @@ void updateMonitors(PAInterface *interface)
 	std::lock_guard<std::mutex> lg(screenMutex);
 	for (iter_inputinfo_t it = interface->getInputInfo().begin(); it != interface->getInputInfo().end(); it++)
 	{
-		std::string bar = generateVolumeMeter(it->second.m_Peak);
-		mvprintw(mapMonitorLines[it->first], 1, bar.c_str());
+		std::wstring bar = generateVolumeMeter(it->second.m_Peak);
+		mvaddwstr(mapMonitorLines[it->first], 1, bar.c_str());
 	}
 	refresh();
 }
