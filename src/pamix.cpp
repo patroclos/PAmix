@@ -172,8 +172,14 @@ void inputThread(PAInterface *interface)
 		case 'h':
 			change_volume(-0.05, interface);
 			break;
+		case 'H':
+			change_volume(-0.15, interface);
+			break;
 		case 'l':
 			change_volume(0.05, interface);
+			break;
+		case 'L':
+			change_volume(0.15, interface);
 			break;
 		case 'j':
 			selected = (selected + 1) % interface->getInputInfo().size();
