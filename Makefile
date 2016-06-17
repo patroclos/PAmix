@@ -1,5 +1,6 @@
 CC=g++
-CFLAGS=-Wall -O2 -lncursesw -lpulse -std=c++11 -Iinclude -g
+CFLAGS=-Wall -O2 -std=c++11 -Iinclude -g
+LIBS=ncursesw pulse
 
 SRCFOLDER=src
 INCFOLDER=include
@@ -17,7 +18,7 @@ all: $(BINARY)
 
 $(BINARY): $(OBJECTS)
 	@if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@) ; fi
-	$(CC) $(CFLAGS) $(OBJECTS) -o $(BINARY)
+	$(CC) $(CFLAGS) $(addprefix -l,$(LIBS)) $(OBJECTS) -o $(BINARY)
 	
 $(OBJFOLDER)/%.o: $(SRCFOLDER)/%.cpp $(wildcard $(INCFOLDER)/%.h $(INCFOLDER)/%.hpp)
 	@if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@) ; fi
