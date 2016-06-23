@@ -29,12 +29,17 @@ InputInfo::~InputInfo()
 
 void InputInfo::update(const pa_sink_input_info *info)
 {
-	m_Sink     = info->sink;
-	m_Channels = info->volume.channels;
-	m_Appname  = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME);
-	m_Volume   = pa_cvolume_avg(&info->volume);
-	m_Kill     = false;
-	m_Mute     = info->mute;
+	m_Sink         = info->sink;
+	m_Appname      = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME);
+	m_Kill         = false;
+	m_Mute         = info->mute;
+	m_PAVolume     = info->volume;
+	m_PAChannelMap = info->channel_map;
+}
+
+pa_volume_t InputInfo::getAverageVolume()
+{
+	return pa_cvolume_avg(&m_PAVolume);
 }
 
 SinkInfo::SinkInfo(const pa_sink_info *info)
@@ -315,17 +320,16 @@ std::map<uint32_t, SinkInfo> &PAInterface::getSinkInfo()
 	return m_Sinkinfos;
 }
 
-void PAInterface::addVolume(const uint32_t inputidx, const double pctDelta)
+void PAInterface::addVolume(const uint32_t inputidx, const int channel, const double pctDelta)
 {
 	mainloop_lockguard lg(m_Mainloop);
 
 	int delta = round(pctDelta * PA_VOLUME_NORM);
 	assert(getInputInfo().count(inputidx));
 
-	pa_cvolume *volume = new pa_cvolume();
-	pa_cvolume_init(volume);
+	pa_cvolume *volume = &getInputInfo().find(inputidx)->second.m_PAVolume;
 
-	pa_volume_t vol = getInputInfo()[inputidx].m_Volume;
+	pa_volume_t vol = channel == -1 ? pa_cvolume_avg(volume) : volume->values[channel];
 
 	if (delta > 0)
 	{
@@ -353,13 +357,15 @@ void PAInterface::addVolume(const uint32_t inputidx, const double pctDelta)
 		}
 	}
 
-	pa_cvolume_set(volume, getInputInfo()[inputidx].m_Channels, vol);
+	if (channel == -1)
+		pa_cvolume_set(volume, getInputInfo()[inputidx].m_PAVolume.channels, vol);
+	else
+		volume->values[channel] = vol;
 
 	pa_operation *op = pa_context_set_sink_input_volume(m_Context, inputidx, volume, &PAInterface::cb_success, this);
 	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
 		pa_threaded_mainloop_wait(m_Mainloop);
 	pa_operation_unref(op);
-	delete volume;
 }
 
 void PAInterface::setInputSink(const uint32_t inputidx, const uint32_t sinkidx)

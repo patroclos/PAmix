@@ -16,20 +16,22 @@ struct mainloop_lockguard
 
 struct InputInfo
 {
-	std::string m_Appname;
-	uint32_t    m_Sink;
-	uint8_t     m_Channels;
-	pa_stream * m_Monitor;
-	double      m_Peak;
-	pa_volume_t m_Volume;
-	bool        m_Kill;
-	bool        m_Mute;
+	std::string    m_Appname;
+	uint32_t       m_Sink;
+	pa_stream *    m_Monitor;
+	double         m_Peak;
+	bool           m_Kill;
+	bool           m_Mute;
+	pa_cvolume     m_PAVolume;
+	pa_channel_map m_PAChannelMap;
+	bool           m_ChannelsLocked;
 
 	InputInfo(const pa_sink_input_info *info);
 	InputInfo() = default;
 	~InputInfo();
 
 	void update(const pa_sink_input_info *info);
+	pa_volume_t getAverageVolume();
 };
 
 struct SinkInfo
@@ -99,7 +101,7 @@ public:
 
 	std::map<uint32_t, SinkInfo> &getSinkInfo();
 
-	void addVolume(const uint32_t inputidx, const double pctDelta);
+	void addVolume(const uint32_t inputidx, const int channel, const double pctDelta);
 
 	void setInputSink(const uint32_t inputidx, const uint32_t sinkidx);
 
