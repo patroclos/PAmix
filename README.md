@@ -19,7 +19,6 @@
 | (Un)Mute                   | m   |
 | Next/Previous sink         | s/S |
 | (Un)Lock Channels together | c   |
-|----------------------------+-----|
 
 # Planned Features #
 	- modify multiple channels
