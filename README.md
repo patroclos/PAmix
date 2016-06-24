@@ -6,19 +6,20 @@
 	- change volume
 
 # Keybindings #
-quit:            q
 
-decrease volume: h
-
-increase volume: l
-
-down:            j
-
-up:              k
-
-un/mute:         m
-
-next/prev sink:  s/S
+| Effect                     | Key |
+|----------------------------+-----|
+| Quit                       | q   |
+| Decrease Volume            | h   |
+| Increase Volume            | l   |
+| Select Next                | j   |
+| Select Next SinkInput      | J   |
+| Select Previous            | k   |
+| Select Previous SinkInput  | K   |
+| (Un)Mute                   | m   |
+| Next/Previous sink         | s/S |
+| (Un)Lock Channels together | c   |
+|----------------------------+-----|
 
 # Planned Features #
 	- modify multiple channels
