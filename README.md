@@ -8,7 +8,7 @@
 # Keybindings #
 
 | Effect                     | Key |
-|----------------------------+-----|
+|----------------------------|-----|
 | Quit                       | q   |
 | Decrease Volume            | h   |
 | Increase Volume            | l   |
