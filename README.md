@@ -1,10 +1,5 @@
 # PAMix - the one and only pulseaudio cli mixer
 
-# Features #
-	- change sinks
-	- mute sinkinputs
-	- change volume
-
 # Keybindings #
 
 | Effect                     | Key |
@@ -20,8 +15,6 @@
 | Next/Previous sink         | s/S |
 | (Un)Lock Channels together | c   |
 
-# Planned Features #
-	- modify multiple channels
 
 # Dependencies: #
 	- PulseAudio (duh)
