@@ -98,7 +98,8 @@ void updatesinks(PAInterface *interface)
 			generateMeter(y, 32, COLS - 33, vol, MAX_VOL);
 
 			std::string descstring = "%.2fdB (%.2f)";
-			if(isSelInput)descstring.insert(0,"▶ ");
+			if (isSelInput)
+				descstring.insert(0, "▶ ");
 			mvprintw(y++, 1, descstring.c_str(), dB, vol);
 		}
 		else

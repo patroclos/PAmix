@@ -14,8 +14,8 @@ mainloop_lockguard::~mainloop_lockguard()
 InputInfo::InputInfo(const pa_sink_input_info *info)
 {
 	update(info);
-	m_Peak    = 0.0;
-	m_Monitor = nullptr;
+	m_Peak           = 0.0;
+	m_Monitor        = nullptr;
 }
 
 InputInfo::~InputInfo()

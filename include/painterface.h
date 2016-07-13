@@ -24,7 +24,7 @@ struct InputInfo
 	bool           m_Mute;
 	pa_cvolume     m_PAVolume;
 	pa_channel_map m_PAChannelMap;
-	bool           m_ChannelsLocked;
+	bool           m_ChannelsLocked = true;
 
 	InputInfo(const pa_sink_input_info *info);
 	InputInfo() = default;
