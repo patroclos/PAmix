@@ -13,7 +13,7 @@ OBJECTS := $(patsubst $(SRCFOLDER)/%.cpp,$(OBJFOLDER)/%.o,$(SOURCES))
 NAME=pamix
 BINARY=$(BINFOLDER)/$(NAME)
 
-.PHONY: all clean
+.PHONY: all clean install
 all: $(BINARY)
 
 $(BINARY): $(OBJECTS)
@@ -23,6 +23,9 @@ $(BINARY): $(OBJECTS)
 $(OBJFOLDER)/%.o: $(SRCFOLDER)/%.cpp $(wildcard $(INCFOLDER)/%.h $(INCFOLDER)/%.hpp)
 	@if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@) ; fi
 	$(CC) $(CFLAGS) -c $< -o $@
+
+install: $(BINARY)
+	cp $(BINARY) /usr/bin
 
 clean:
 	@-rm -rf $(BINARY) $(OBJECTS)
