@@ -1,7 +1,8 @@
 #include <iostream>
 #include <painterface.h>
 
-mainloop_lockguard::mainloop_lockguard(pa_threaded_mainloop *m) : m(m)
+mainloop_lockguard::mainloop_lockguard(pa_threaded_mainloop *m)
+    : m(m)
 {
 	pa_threaded_mainloop_lock(m);
 }
@@ -14,8 +15,8 @@ mainloop_lockguard::~mainloop_lockguard()
 InputInfo::InputInfo(const pa_sink_input_info *info)
 {
 	update(info);
-	m_Peak           = 0.0;
-	m_Monitor        = nullptr;
+	m_Peak    = 0.0;
+	m_Monitor = nullptr;
 }
 
 InputInfo::~InputInfo()
@@ -215,6 +216,7 @@ void PAInterface::_updateInputs(PAInterface *interface)
 
 	pa_operation_unref(infooper);
 
+	interface->modifyLock();
 	for (iter_inputinfo_t it = interface->m_Sinkinputinfos.begin(); it != interface->m_Sinkinputinfos.end();)
 	{
 		if (it->second.m_Kill)
@@ -228,6 +230,7 @@ void PAInterface::_updateInputs(PAInterface *interface)
 			it++;
 		}
 	}
+	interface->modifyUnlock();
 }
 
 void PAInterface::_updateSinks(PAInterface *interface)
@@ -385,4 +388,13 @@ void PAInterface::setMute(const uint32_t inputidx, bool mute)
 	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
 		pa_threaded_mainloop_wait(m_Mainloop);
 	pa_operation_unref(op);
+}
+void PAInterface::modifyLock()
+{
+	m_modifyMutex.lock();
+}
+
+void PAInterface::modifyUnlock()
+{
+	m_modifyMutex.unlock();
 }

@@ -4,6 +4,7 @@
 #include <cstring>
 #include <ctgmath>
 #include <map>
+#include <mutex>
 #include <pulse/pulseaudio.h>
 #include <thread>
 
@@ -67,6 +68,8 @@ private:
 	std::map<uint32_t, InputInfo> m_Sinkinputinfos;
 	std::map<uint32_t, SinkInfo>  m_Sinkinfos;
 
+	std::mutex m_modifyMutex;
+
 	pai_subscription_cb m_Subscription_callback;
 
 private:
@@ -106,4 +109,7 @@ public:
 	void setInputSink(const uint32_t inputidx, const uint32_t sinkidx);
 
 	void setMute(const uint32_t inputidx, bool mute);
+
+	void modifyLock();
+	void modifyUnlock();
 };

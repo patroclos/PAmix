@@ -13,7 +13,8 @@ struct VolBarData
 	unsigned m_Y;
 	unsigned m_X;
 	unsigned m_Width;
-	VolBarData(unsigned y, unsigned x, unsigned w) : m_Y(y), m_X(x), m_Width(w)
+	VolBarData(unsigned y, unsigned x, unsigned w)
+	    : m_Y(y), m_X(x), m_Width(w)
 	{
 	}
 	VolBarData() = default;
@@ -70,6 +71,7 @@ void generateMeter(int y, int x, int width, const double pct, const double maxvo
 
 void updatesinks(PAInterface *interface)
 {
+	interface->modifyLock();
 	//avoid concurrent drawing
 	std::lock_guard<std::mutex> lg(screenMutex);
 
@@ -156,17 +158,20 @@ void updatesinks(PAInterface *interface)
 		y += 1;
 	}
 
+	interface->modifyUnlock();
 	refresh();
 }
 
 void updateMonitors(PAInterface *interface)
 {
 	std::lock_guard<std::mutex> lg(screenMutex);
+	interface->modifyLock();
 	for (iter_inputinfo_t it = interface->getInputInfo().begin(); it != interface->getInputInfo().end(); it++)
 	{
 		VolBarData vbd = mapMonitorLines[it->first];
 		generateMeter(vbd.m_Y, vbd.m_X, vbd.m_Width, it->second.m_Peak, 1.0);
 	}
+	interface->modifyUnlock();
 	refresh();
 }
 
