@@ -78,6 +78,7 @@ void updatesinks(PAInterface *interface)
 
 	clear();
 
+	mvprintw(0, 1, "Selected %d/%d", selectedInput + 1, interface->getInputInfo().size());
 	unsigned y     = 1;
 	unsigned index = 0;
 
@@ -95,7 +96,7 @@ void updatesinks(PAInterface *interface)
 		bool    isSelInput  = index == selectedInput;
 		uint8_t numChannels = it->second.m_ChannelsLocked ? 1 : it->second.m_PAVolume.channels;
 
-		if (y + numChannels + 2 > LINES)
+		if (y + numChannels + 2 > (unsigned)LINES)
 			break;
 
 		if (it->second.m_ChannelsLocked)
