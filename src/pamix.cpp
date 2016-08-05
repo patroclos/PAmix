@@ -8,18 +8,6 @@
 #include <string>
 #include <thread>
 
-struct VolBarData
-{
-	unsigned m_Y;
-	unsigned m_X;
-	unsigned m_Width;
-	VolBarData(unsigned y, unsigned x, unsigned w)
-	    : m_Y(y), m_X(x), m_Width(w)
-	{
-	}
-	VolBarData() = default;
-};
-
 struct UpdateData
 {
 	bool redrawAll;
@@ -38,7 +26,7 @@ uint8_t  selectedChannel = 0;
 std::map<uint32_t, double> lastPeaks;
 std::mutex screenMutex;
 
-std::map<uint32_t, VolBarData> mapMonitorLines;
+std::map<uint32_t, uint32_t> mapMonitorLines;
 
 // sync main and callback threads
 std::mutex              updMutex;
@@ -123,7 +111,7 @@ void updatesinks(PAInterface *interface)
 
 		double peak = it->second.m_Peak;
 
-		mapMonitorLines[it->first] = VolBarData(y, 1, COLS - 2);
+		mapMonitorLines[it->first] = y;
 		generateMeter(y++, 1, COLS - 2, peak, 1.0);
 
 		//mark selected input with arrow in front of name
@@ -168,8 +156,8 @@ void updateMonitors(PAInterface *interface)
 	interface->modifyLock();
 	for (iter_inputinfo_t it = interface->getInputInfo().begin(); it != interface->getInputInfo().end(); it++)
 	{
-		VolBarData vbd = mapMonitorLines[it->first];
-		generateMeter(vbd.m_Y, vbd.m_X, vbd.m_Width, it->second.m_Peak, 1.0);
+		uint32_t y = mapMonitorLines[it->first];
+		generateMeter(y, 1, COLS - 2, it->second.m_Peak, 1.0);
 	}
 	interface->modifyUnlock();
 	refresh();
