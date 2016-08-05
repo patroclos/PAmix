@@ -17,7 +17,8 @@ struct UpdateData
 
 #define DECAY_STEP 0.04
 #define MAX_VOL 1.5
-#define SYM_VOLBAR L'\u25ae' //▮
+#define SYM_VOLBAR L"\u25ae" //▮
+#define SYM_SPACE L"\u0020" // White space
 
 // GLOBAL VARIABLES
 bool     running         = true;
@@ -57,11 +58,39 @@ void generateMeter(int y, int x, int width, const double pct, const double maxvo
 	if (filled > segments)
 		filled = segments;
 
-	std::wstring meter = L"[]";
+    mvaddwstr(y, x, L"[");	
+    x++;
+    
+    for(int i=0; i<filled; i++)
+    {
+        float p = (float) i / width;
+        int colorPair;
 
-	meter.insert(1, filled, SYM_VOLBAR);
-	meter.insert(filled + 1, segments - filled, ' ');
-	mvaddwstr(y, x, meter.c_str());
+        if(p < .333f){
+            colorPair = COLOR_PAIR(1);
+        } else if(p>.333f && p<.666f){   
+            colorPair = COLOR_PAIR(2);
+        } else {
+            colorPair = COLOR_PAIR(3);
+        }
+
+        attron(colorPair);
+        mvaddwstr(y, x, SYM_VOLBAR);
+        attroff(colorPair);
+        x++;
+    }
+
+    mvaddwstr(y, x, L"]");
+    x++;
+
+    // Fill up the rest with spaces
+    for(int i=0; i<(segments-filled); i++)
+    {
+        mvaddwstr(y, x, SYM_SPACE);
+        x++; 
+    }
+	
+	
 }
 
 void updatesinks(PAInterface *interface)
@@ -370,10 +399,19 @@ void sig_handle_resize(int s)
 	signal_update(true);
 }
 
+void init_colors()
+{
+    start_color();
+    init_pair(1, COLOR_GREEN, 0);
+    init_pair(2, COLOR_YELLOW, 0);
+    init_pair(3, COLOR_RED, 0);
+}
+
 int main(int argc, char **argv)
 {
 	setlocale(LC_ALL, "");
 	initscr();
+    init_colors();
 	curs_set(0); // make cursor invisible
 	noecho();
 
