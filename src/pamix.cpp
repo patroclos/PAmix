@@ -26,7 +26,12 @@ uint8_t  selectedChannel = 0;
 std::map<uint32_t, double> lastPeaks;
 std::mutex screenMutex;
 
+// scrolling
+uint32_t skipInputs         = 0;
+uint32_t numDisplayedInputs = 0;
+
 std::map<uint32_t, uint32_t> mapMonitorLines;
+std::map<uint32_t, uint8_t>  mapIndexSize;
 
 // sync main and callback threads
 std::mutex              updMutex;
@@ -76,14 +81,22 @@ void updatesinks(PAInterface *interface)
 	unsigned y     = 1;
 	unsigned index = 0;
 
-	for (iter_inputinfo_t it = interface->getInputInfo().begin(); it != interface->getInputInfo().end(); it++)
+	iter_inputinfo_t it = interface->getInputInfo().begin();
+	for (; it != interface->getInputInfo().end(); it++, index++)
+		mapIndexSize[index] = it->second.m_ChannelsLocked ? 1 : it->second.m_PAVolume.channels + 2;
+
+	for (it = std::next(interface->getInputInfo().begin(), skipInputs), index = skipInputs; it != interface->getInputInfo().end(); it++, index++)
 	{
 		std::string &appname = it->second.m_Appname;
 		pa_volume_t  avgvol  = it->second.getAverageVolume();
 		double       dB      = pa_sw_volume_to_dB(avgvol);
 		double       vol     = avgvol / (double)PA_VOLUME_NORM;
 
-		bool isSelInput = index++ == selectedInput;
+		bool    isSelInput  = index == selectedInput;
+		uint8_t numChannels = it->second.m_ChannelsLocked ? 1 : it->second.m_PAVolume.channels;
+
+		if (y + numChannels + 2 > LINES)
+			break;
 
 		if (it->second.m_ChannelsLocked)
 		{
@@ -96,7 +109,7 @@ void updatesinks(PAInterface *interface)
 		}
 		else
 		{
-			for (uint32_t chan = 0; chan < it->second.m_PAVolume.channels; chan++)
+			for (uint32_t chan = 0; chan < numChannels; chan++)
 			{
 				bool        isSelChannel = isSelInput && chan == selectedChannel;
 				std::string channame     = pa_channel_position_to_pretty_string(it->second.m_PAChannelMap.map[chan]);
@@ -148,6 +161,8 @@ void updatesinks(PAInterface *interface)
 		y += 1;
 	}
 
+	numDisplayedInputs = index - skipInputs;
+
 	interface->modifyUnlock();
 	refresh();
 }
@@ -156,8 +171,12 @@ void updateMonitors(PAInterface *interface)
 {
 	std::lock_guard<std::mutex> lg(screenMutex);
 	interface->modifyLock();
-	for (iter_inputinfo_t it = interface->getInputInfo().begin(); it != interface->getInputInfo().end(); it++)
+	iter_inputinfo_t it    = std::next(interface->getInputInfo().begin(), skipInputs);
+	uint32_t         index = 0;
+	for (; it != interface->getInputInfo().end(); it++, index++)
 	{
+		if (index >= skipInputs + numDisplayedInputs)
+			break;
 		uint32_t y = mapMonitorLines[it->first];
 		generateMeter(y, 1, COLS - 2, it->second.m_Peak, 1.0);
 	}
@@ -203,6 +222,31 @@ void mute_input(PAInterface *interface)
 	interface->setMute(it->first, !it->second.m_Mute);
 }
 
+void adjustDisplay()
+{
+	if (selectedInput >= skipInputs && selectedInput < skipInputs + numDisplayedInputs)
+		return;
+	if (selectedInput < skipInputs)
+	{
+		// scroll up until selected is at top
+		skipInputs = selectedInput;
+	}
+	else
+	{
+		// scroll down until selected is at bottom
+		uint32_t linesToFree = 0;
+		uint32_t idx         = skipInputs + numDisplayedInputs;
+		for (; idx <= selectedInput; idx++)
+			linesToFree += mapIndexSize[idx]; // +1 ?
+
+		uint32_t linesFreed = 0;
+		idx                 = 0;
+		while (linesFreed < linesToFree)
+			linesFreed += mapIndexSize[idx++];
+		skipInputs = idx;
+	}
+}
+
 void selectNext(PAInterface *interface, bool channelLevel = true)
 {
 	if (selectedInput < interface->getInputInfo().size())
@@ -222,6 +266,7 @@ void selectNext(PAInterface *interface, bool channelLevel = true)
 		else
 			selectedChannel = 0;
 	}
+	adjustDisplay();
 }
 
 void selectPrev(PAInterface *interface, bool channelLevel = true)
@@ -244,6 +289,7 @@ void selectPrev(PAInterface *interface, bool channelLevel = true)
 			selectedChannel = get_selected_input_iter(interface)->second.m_PAVolume.channels - 1;
 		}
 	}
+	adjustDisplay();
 }
 
 void toggleChannelLock(PAInterface *interface)
