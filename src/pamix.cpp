@@ -49,6 +49,8 @@ void generateMeter(int y, int x, int width, const double pct, const double maxvo
 	if (segments <= 0)
 		return;
 	int filled = pct / maxvol * (double)segments;
+	if (filled > segments)
+		filled = segments;
 
 	std::wstring meter = L"[]";
 
