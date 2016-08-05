@@ -1,5 +1,7 @@
 # PAMix - the one and only pulseaudio cli mixer
 
+![alt tag](https://media.giphy.com/media/3owyoYKCrBCDo5eUak/giphy.gif)
+
 # Keybindings #
 
 | Effect                     | Key |
