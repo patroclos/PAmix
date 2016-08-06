@@ -1,4 +1,4 @@
-# PAMix - the one and only pulseaudio cli mixer
+# PAMix - the one and only pulseaudio terminal mixer
 
 ![alt tag](https://media.giphy.com/media/3owyoYKCrBCDo5eUak/giphy.gif)
 
