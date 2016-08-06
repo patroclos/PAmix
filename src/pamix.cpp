@@ -17,8 +17,8 @@ struct UpdateData
 
 #define DECAY_STEP 0.04
 #define MAX_VOL 1.5
-#define SYM_VOLBAR L"\u25ae" //▮
-#define SYM_SPACE L"\u0020" // White space
+#define SYM_VOLBAR L'\u25ae' //▮
+#define SYM_SPACE L'\u0020' // White space
 
 // GLOBAL VARIABLES
 bool     running         = true;
@@ -58,35 +58,25 @@ void generateMeter(int y, int x, int width, const double pct, const double maxvo
 	if (filled > segments)
 		filled = segments;
 
-	mvaddwstr(y, x, L"[");
-	x++;
+	mvaddstr(y, x++, "[");
+	mvaddstr(y, x + segments, "]");
 
-	for (int i = 0; i < filled; i++)
-	{
-		float p = (float)i / width;
-		int   colorPair;
+	int indexColorA = segments * ((double)1 / 3);
+	int indexColorB = segments * ((double)2 / 3);
 
-		if (p < .333f)
-			colorPair = COLOR_PAIR(1);
-		else if (p > .333f && p < .666f)
-			colorPair = COLOR_PAIR(2);
-		else
-			colorPair = COLOR_PAIR(3);
+	std::wstring meter;
 
-		attron(colorPair);
-		mvaddwstr(y, x, SYM_VOLBAR);
-		attroff(colorPair);
-		x++;
-	}
-
-	// Fill up the rest with spaces
-	for (int i = 0; i < (segments - filled); i++)
-	{
-		mvaddwstr(y, x, SYM_SPACE);
-		x++;
-	}
-	mvaddwstr(y, x, L"]");
-	x++;
+	meter.append(filled, SYM_VOLBAR);
+	meter.append(segments - filled, SYM_SPACE);
+	attron(COLOR_PAIR(1));
+	mvwaddnwstr(stdscr, y, x, meter.c_str(), indexColorA);
+	attroff(COLOR_PAIR(1));
+	attron(COLOR_PAIR(2));
+	mvwaddnwstr(stdscr, y, x + indexColorA, meter.c_str() + indexColorA, indexColorB - indexColorA);
+	attroff(COLOR_PAIR(2));
+	attron(COLOR_PAIR(3));
+	mvwaddnwstr(stdscr, y, x + indexColorB, meter.c_str() + indexColorB, segments - indexColorB);
+	attroff(COLOR_PAIR(3));
 }
 
 void updatesinks(PAInterface *interface)
