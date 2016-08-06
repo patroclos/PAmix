@@ -58,39 +58,35 @@ void generateMeter(int y, int x, int width, const double pct, const double maxvo
 	if (filled > segments)
 		filled = segments;
 
-    mvaddwstr(y, x, L"[");	
-    x++;
-    
-    for(int i=0; i<filled; i++)
-    {
-        float p = (float) i / width;
-        int colorPair;
+	mvaddwstr(y, x, L"[");
+	x++;
 
-        if(p < .333f){
-            colorPair = COLOR_PAIR(1);
-        } else if(p>.333f && p<.666f){   
-            colorPair = COLOR_PAIR(2);
-        } else {
-            colorPair = COLOR_PAIR(3);
-        }
+	for (int i = 0; i < filled; i++)
+	{
+		float p = (float)i / width;
+		int   colorPair;
 
-        attron(colorPair);
-        mvaddwstr(y, x, SYM_VOLBAR);
-        attroff(colorPair);
-        x++;
-    }
+		if (p < .333f)
+			colorPair = COLOR_PAIR(1);
+		else if (p > .333f && p < .666f)
+			colorPair = COLOR_PAIR(2);
+		else
+			colorPair = COLOR_PAIR(3);
 
-    mvaddwstr(y, x, L"]");
-    x++;
+		attron(colorPair);
+		mvaddwstr(y, x, SYM_VOLBAR);
+		attroff(colorPair);
+		x++;
+	}
 
-    // Fill up the rest with spaces
-    for(int i=0; i<(segments-filled); i++)
-    {
-        mvaddwstr(y, x, SYM_SPACE);
-        x++; 
-    }
-	
-	
+	// Fill up the rest with spaces
+	for (int i = 0; i < (segments - filled); i++)
+	{
+		mvaddwstr(y, x, SYM_SPACE);
+		x++;
+	}
+	mvaddwstr(y, x, L"]");
+	x++;
 }
 
 void updatesinks(PAInterface *interface)
@@ -401,17 +397,17 @@ void sig_handle_resize(int s)
 
 void init_colors()
 {
-    start_color();
-    init_pair(1, COLOR_GREEN, 0);
-    init_pair(2, COLOR_YELLOW, 0);
-    init_pair(3, COLOR_RED, 0);
+	start_color();
+	init_pair(1, COLOR_GREEN, 0);
+	init_pair(2, COLOR_YELLOW, 0);
+	init_pair(3, COLOR_RED, 0);
 }
 
 int main(int argc, char **argv)
 {
 	setlocale(LC_ALL, "");
 	initscr();
-    init_colors();
+	init_colors();
 	curs_set(0); // make cursor invisible
 	noecho();
 
