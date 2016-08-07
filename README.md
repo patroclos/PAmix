@@ -1,4 +1,5 @@
 # PAMix - the one and only pulseaudio terminal mixer
+(not litterally, there are also pacmixer and pulsemixer, but this one has the fewest dependencies, also its cooler)
 
 ![alt tag](https://media.giphy.com/media/3owyoYKCrBCDo5eUak/giphy.gif)
 
@@ -21,3 +22,7 @@
 # Dependencies: #
 	- PulseAudio (duh)
 	- Ncurses
+
+# Building: #
+- Clone and CD into directory
+- run 'make' and 'make install'
