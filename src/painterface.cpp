@@ -80,6 +80,7 @@ PAInterface::PAInterface(const char *context_name)
 
 	while (pa_operation_get_state(subscrop) == PA_OPERATION_RUNNING)
 		pa_threaded_mainloop_wait(m_Mainloop);
+	pa_operation_unref(subscrop);
 
 	pa_threaded_mainloop_unlock(m_Mainloop);
 	updateSinks();
