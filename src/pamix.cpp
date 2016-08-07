@@ -406,10 +406,10 @@ int main(int argc, char **argv)
 	PAInterface pai("pamix");
 	pai.subscribe(pai_subscription);
 
+	updatesinks(&pai);
 	std::thread inputT(inputThread, &pai);
 	inputT.detach();
 
-	signal_update(true);
 	while (running)
 	{
 		std::unique_lock<std::mutex> lk(updMutex);
