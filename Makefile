@@ -24,7 +24,8 @@ $(OBJFOLDER)/%.o: $(SRCFOLDER)/%.cpp $(wildcard $(INCFOLDER)/%.h $(INCFOLDER)/%.
 	$(CXX) $(CFLAGS) -c $< -o $@
 
 install: $(BINARY)
-	cp $(BINARY) /usr/bin
+	mkdir -p "$(DESTDIR)/usr/bin"
+	cp $(BINARY) "$(DESTDIR)/usr/bin"
 
 clean:
 	@-rm -rf $(BINARY) $(OBJECTS)
