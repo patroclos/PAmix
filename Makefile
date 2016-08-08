@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-Wall -O2 -std=c++11 -Iinclude -g -pthread
+CFLAGS=-Wall -O2 -std=c++11 -Iinclude -pthread
 LIBS=ncursesw pulse
 
 SRCFOLDER=src
