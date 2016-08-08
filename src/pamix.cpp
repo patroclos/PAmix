@@ -1,7 +1,7 @@
 #include <condition_variable>
 #include <locale.h>
 #include <mutex>
-#include <ncursesw/ncurses.h>
+#include <ncurses.h>
 #include <painterface.h>
 #include <queue>
 #include <signal.h>

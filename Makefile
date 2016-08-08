@@ -1,6 +1,5 @@
-CC=g++
-CFLAGS=-Wall -O2 -std=c++11 -Iinclude -pthread
-LIBS=ncursesw pulse
+CFLAGS := -Wall -O2 -std=c++11 -Iinclude -pthread $(shell pkg-config --cflags libpulse ncursesw)
+LIBS := $(shell pkg-config --libs libpulse ncursesw)
 
 SRCFOLDER=src
 INCFOLDER=include
@@ -18,11 +17,11 @@ all: $(BINARY)
 
 $(BINARY): $(OBJECTS)
 	@if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@) ; fi
-	$(CC) $(CFLAGS) $(addprefix -l,$(LIBS)) $(OBJECTS) -o $(BINARY)
+	$(CXX) $(CFLAGS) $(LIBS) $(OBJECTS) -o $(BINARY)
 	
 $(OBJFOLDER)/%.o: $(SRCFOLDER)/%.cpp $(wildcard $(INCFOLDER)/%.h $(INCFOLDER)/%.hpp)
 	@if [ ! -d $(dir $@) ]; then mkdir -p $(dir $@) ; fi
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CFLAGS) -c $< -o $@
 
 install: $(BINARY)
 	cp $(BINARY) /usr/bin
