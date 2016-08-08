@@ -28,4 +28,4 @@ install: $(BINARY)
 	cp $(BINARY) "$(DESTDIR)/usr/bin"
 
 clean:
-	@-rm -rf $(BINARY) $(OBJECTS)
+	@-rm -rf $(OBJFOLDER) $(BINFOLDER) 2>/dev/null
