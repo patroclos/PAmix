@@ -393,18 +393,30 @@ void init_colors()
 	init_pair(3, COLOR_RED, 0);
 }
 
+void sig_handle_abort(int sig)
+{
+	endwin();
+}
+
 int main(int argc, char **argv)
 {
 	setlocale(LC_ALL, "");
 	initscr();
 	init_colors();
-	curs_set(0); // make cursor invisible
+	curs_set(0);
 	noecho();
 
+	signal(SIGABRT, sig_handle_abort);
 	signal(SIGWINCH, sig_handle_resize);
 
 	PAInterface pai("pamix");
 	pai.subscribe(pai_subscription);
+	if(!pai.connect())
+	{
+		endwin();
+		fprintf(stderr, "Failed to connect to PulseAudio.\n");
+		exit(1);
+	}
 
 	updatesinks(&pai);
 	std::thread inputT(inputThread, &pai);
@@ -416,13 +428,9 @@ int main(int argc, char **argv)
 		cv.wait(lk, [] { return !updateDataQ.empty(); });
 
 		if (updateDataQ.front().redrawAll)
-		{
 			updatesinks(&pai);
-		}
 		else
-		{
 			updateMonitors(&pai);
-		}
 		updateDataQ.pop();
 	}
 	endwin();

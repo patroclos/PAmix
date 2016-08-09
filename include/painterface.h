@@ -61,6 +61,7 @@ typedef void (*pai_subscription_cb)(PAInterface *, const pai_subscription_type_t
 class PAInterface
 {
 private:
+	const char *          m_ContextName;
 	pa_threaded_mainloop *m_Mainloop;
 	pa_mainloop_api *     m_MainloopApi;
 	pa_context *          m_Context;
@@ -97,6 +98,10 @@ private:
 public:
 	PAInterface(const char *context_name);
 	~PAInterface();
+
+	bool connect();
+	void disconnect();
+	bool isConnected();
 
 	void subscribe(pai_subscription_cb callback);
 

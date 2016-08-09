@@ -50,48 +50,13 @@ SinkInfo::SinkInfo(const pa_sink_info *info)
 }
 
 PAInterface::PAInterface(const char *context_name)
+    : m_ContextName(context_name), m_Mainloop(0), m_MainloopApi(0), m_Context(0)
 {
-	m_Subscription_callback = nullptr;
-	m_Mainloop              = pa_threaded_mainloop_new();
-
-	assert(m_Mainloop);
-
-	m_MainloopApi = pa_threaded_mainloop_get_api(m_Mainloop);
-	m_Context     = pa_context_new(m_MainloopApi, context_name);
-	assert(m_Context);
-
-	pa_context_set_state_callback(m_Context, &PAInterface::cb_context_state, this);
-	pa_threaded_mainloop_lock(m_Mainloop);
-
-	assert(pa_threaded_mainloop_start(m_Mainloop) == 0);
-	assert(pa_context_connect(m_Context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL) == 0);
-
-	for (;;)
-	{
-		pa_context_state_t state = pa_context_get_state(m_Context);
-		assert(PA_CONTEXT_IS_GOOD(state));
-		if (state == PA_CONTEXT_READY)
-			break;
-		pa_threaded_mainloop_wait(m_Mainloop);
-	}
-
-	pa_context_set_subscribe_callback(m_Context, &PAInterface::cb_subscription_event, this);
-	pa_operation *subscrop = pa_context_subscribe(m_Context, PA_SUBSCRIPTION_MASK_ALL, &PAInterface::cb_success, this);
-
-	while (pa_operation_get_state(subscrop) == PA_OPERATION_RUNNING)
-		pa_threaded_mainloop_wait(m_Mainloop);
-	pa_operation_unref(subscrop);
-
-	pa_threaded_mainloop_unlock(m_Mainloop);
-	updateSinks();
-	updateInputs();
 }
 
 PAInterface::~PAInterface()
 {
-	pa_context_disconnect(m_Context);
-	pa_threaded_mainloop_stop(m_Mainloop);
-	pa_threaded_mainloop_free(m_Mainloop);
+	disconnect();
 }
 
 void PAInterface::signal_mainloop(void *interface)
@@ -246,6 +211,62 @@ void PAInterface::_updateSinks(PAInterface *interface)
 		pa_threaded_mainloop_wait(interface->m_Mainloop);
 
 	pa_operation_unref(infooper);
+}
+
+bool PAInterface::connect()
+{
+	m_Mainloop = pa_threaded_mainloop_new();
+
+	assert(m_Mainloop);
+
+	m_MainloopApi = pa_threaded_mainloop_get_api(m_Mainloop);
+	m_Context     = pa_context_new(m_MainloopApi, m_ContextName);
+	assert(m_Context);
+
+	pa_context_set_state_callback(m_Context, &PAInterface::cb_context_state, this);
+	pa_threaded_mainloop_lock(m_Mainloop);
+
+	if (pa_threaded_mainloop_start(m_Mainloop))
+		return false;
+	if (pa_context_connect(m_Context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL))
+		return false;
+
+	for (;;)
+	{
+		pa_context_state_t state = pa_context_get_state(m_Context);
+		assert(PA_CONTEXT_IS_GOOD(state));
+		if (state == PA_CONTEXT_READY)
+			break;
+		pa_threaded_mainloop_wait(m_Mainloop);
+	}
+
+	pa_context_set_subscribe_callback(m_Context, &PAInterface::cb_subscription_event, this);
+	pa_operation *subscrop = pa_context_subscribe(m_Context, PA_SUBSCRIPTION_MASK_ALL, &PAInterface::cb_success, this);
+
+	while (pa_operation_get_state(subscrop) == PA_OPERATION_RUNNING)
+		pa_threaded_mainloop_wait(m_Mainloop);
+	pa_operation_unref(subscrop);
+
+	pa_threaded_mainloop_unlock(m_Mainloop);
+	updateSinks();
+	updateInputs();
+	return true;
+}
+
+void PAInterface::disconnect()
+{
+	if (m_Context)
+		pa_context_disconnect(m_Context);
+	if (m_Mainloop)
+	{
+		pa_threaded_mainloop_stop(m_Mainloop);
+		pa_threaded_mainloop_free(m_Mainloop);
+	}
+}
+
+bool PAInterface::isConnected()
+{
+	return m_Context ? pa_context_get_state(m_Context) == PA_CONTEXT_READY : false;
 }
 
 void PAInterface::updateInputs()
