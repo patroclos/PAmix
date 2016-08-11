@@ -2,7 +2,7 @@
 #include <locale.h>
 #include <mutex>
 #include <ncurses.h>
-#include <painterface.h>
+#include <painterface.hpp>
 #include <queue>
 #include <signal.h>
 #include <string>

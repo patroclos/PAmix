@@ -1,5 +1,5 @@
 #include <iostream>
-#include <painterface.h>
+#include <painterface.hpp>
 
 mainloop_lockguard::mainloop_lockguard(pa_threaded_mainloop *m)
     : m(m)
