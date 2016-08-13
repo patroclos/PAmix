@@ -1,6 +1,6 @@
 # PAMix - the pulseaudio terminal mixer
 
-![alt tag](https://media.giphy.com/media/3owyoYKCrBCDo5eUak/giphy.gif)
+![alt tag](http://i.imgur.com/NuzrAXZ.gif)
 
 # Keybindings #
 
