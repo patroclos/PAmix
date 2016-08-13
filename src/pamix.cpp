@@ -22,14 +22,17 @@ struct UpdateData
 
 // GLOBAL VARIABLES
 bool     running         = true;
-unsigned selectedInput   = 0;
+unsigned selectedEntry   = 0;
 uint8_t  selectedChannel = 0;
 std::map<uint32_t, double> lastPeaks;
 std::mutex screenMutex;
 
+std::map<uint32_t, std::unique_ptr<Entry>> *entryMap = nullptr;
+entry_type entryType;
+
 // scrolling
-uint32_t skipInputs         = 0;
-uint32_t numDisplayedInputs = 0;
+uint32_t skipEntries         = 0;
+uint32_t numDisplayedEntries = 0;
 
 std::map<uint32_t, uint32_t> mapMonitorLines;
 std::map<uint32_t, uint8_t>  mapIndexSize;
@@ -47,6 +50,28 @@ void signal_update(bool all)
 		updateDataQ.push(UpdateData(all));
 	}
 	cv.notify_one();
+}
+
+void selectEntries(PAInterface *interface, entry_type type)
+{
+	switch (type)
+	{
+	case ENTRY_SINK:
+		entryMap = &interface->getSinks();
+		break;
+	case ENTRY_SOURCE:
+		entryMap = &interface->getSources();
+		break;
+	case ENTRY_SINKINPUT:
+		entryMap = &interface->getSinkInputs();
+		break;
+	case ENTRY_SOURCEOUTPUT:
+		entryMap = &interface->getSourceOutputs();
+		break;
+	default:
+		return;
+	}
+	entryType = type;
 }
 
 void generateMeter(int y, int x, int width, const double pct, const double maxvol)
@@ -79,47 +104,49 @@ void generateMeter(int y, int x, int width, const double pct, const double maxvo
 	attroff(COLOR_PAIR(3));
 }
 
-void updatesinks(PAInterface *interface)
+void drawEntries(PAInterface *interface)
 {
 	interface->modifyLock();
-	//avoid concurrent drawing
 	std::lock_guard<std::mutex> lg(screenMutex);
 
-	if (selectedInput > interface->getInputInfo().size() - 1)
+	if (selectedEntry > entryMap->size() - 1)
 	{
-		selectedInput   = interface->getInputInfo().size() - 1;
+		selectedEntry   = entryMap->size() - 1;
 		selectedChannel = 0;
 	}
 
 	clear();
 
-	mvprintw(0, 1, "Selected %d/%d", selectedInput + 1, interface->getInputInfo().size());
-	unsigned y     = 1;
+	mvprintw(0, 1, "%d/%d", selectedEntry + 1, entryMap->size());
+	const char *entryname = entryType == ENTRY_SINK ? "Output Devices" : entryType == ENTRY_SOURCE ? "Input Devices" : entryType == ENTRY_SINKINPUT ? "Playback" : "Recording";
+	mvprintw(0, 10, "%s", entryname);
+
+	unsigned y     = 2;
 	unsigned index = 0;
 
-	iter_inputinfo_t it = interface->getInputInfo().begin();
-	for (; it != interface->getInputInfo().end(); it++, index++)
-		mapIndexSize[index] = it->second.m_ChannelsLocked ? 1 : it->second.m_PAVolume.channels + 2;
+	iter_entry_t it = entryMap->begin();
+	for (; it != entryMap->end(); it++, index++)
+		mapIndexSize[index] = it->second->m_Lock ? 1 : it->second->m_PAVolume.channels;
 
-	for (it = std::next(interface->getInputInfo().begin(), skipInputs), index = skipInputs; it != interface->getInputInfo().end(); it++, index++)
+	for (it = std::next(entryMap->begin(), skipEntries), index = skipEntries; it != entryMap->end(); it++, index++)
 	{
-		std::string &appname = it->second.m_Appname;
-		pa_volume_t  avgvol  = it->second.getAverageVolume();
+		std::string &appname = it->second->m_Name;
+		pa_volume_t  avgvol  = pa_cvolume_avg(&it->second->m_PAVolume);
 		double       dB      = pa_sw_volume_to_dB(avgvol);
 		double       vol     = avgvol / (double)PA_VOLUME_NORM;
 
-		bool    isSelInput  = index == selectedInput;
-		uint8_t numChannels = it->second.m_ChannelsLocked ? 1 : it->second.m_PAVolume.channels;
+		bool    isSelectedEntry = index == selectedEntry;
+		uint8_t numChannels     = it->second->m_Lock ? 1 : it->second->m_PAVolume.channels;
 
 		if (y + numChannels + 2 > (unsigned)LINES)
 			break;
 
-		if (it->second.m_ChannelsLocked)
+		if (it->second->m_Lock)
 		{
 			generateMeter(y, 32, COLS - 33, vol, MAX_VOL);
 
 			std::string descstring = "%.2fdB (%.2f)";
-			if (isSelInput)
+			if (isSelectedEntry)
 				descstring.insert(0, "▶ ");
 			mvprintw(y++, 1, descstring.c_str(), dB, vol);
 		}
@@ -127,10 +154,10 @@ void updatesinks(PAInterface *interface)
 		{
 			for (uint32_t chan = 0; chan < numChannels; chan++)
 			{
-				bool        isSelChannel = isSelInput && chan == selectedChannel;
-				std::string channame     = pa_channel_position_to_pretty_string(it->second.m_PAChannelMap.map[chan]);
-				double      cdB          = pa_sw_volume_to_dB(it->second.m_PAVolume.values[chan]);
-				double      cvol         = it->second.m_PAVolume.values[chan] / (double)PA_VOLUME_NORM;
+				bool        isSelChannel = isSelectedEntry && chan == selectedChannel;
+				std::string channame     = pa_channel_position_to_pretty_string(it->second->m_PAChannelMap.map[chan]);
+				double      cdB          = pa_sw_volume_to_dB(it->second->m_PAVolume.values[chan]);
+				double      cvol         = it->second->m_PAVolume.values[chan] / (double)PA_VOLUME_NORM;
 				generateMeter(y, 32, COLS - 33, cvol, MAX_VOL);
 				std::string descstring = "%.*s  %.2fdB (%.2f)";
 				if (isSelChannel)
@@ -140,20 +167,19 @@ void updatesinks(PAInterface *interface)
 			}
 		}
 
-		double peak = it->second.m_Peak;
+		double peak = it->second->m_Peak;
 
 		mapMonitorLines[it->first] = y;
 		generateMeter(y++, 1, COLS - 2, peak, 1.0);
 
-		//mark selected input with arrow in front of name
-		if (isSelInput)
+		if (isSelectedEntry)
 			attron(A_STANDOUT);
 
 		mvprintw(y++, 1, appname.c_str());
-		if (isSelInput)
+		if (isSelectedEntry)
 			attroff(A_STANDOUT);
-		bool muted = it->second.m_Mute || avgvol == PA_VOLUME_MUTED;
-		printw(" %s %s", muted ? "🔇" : "", it->second.m_ChannelsLocked ? "🔒" : "");
+		bool muted = it->second->m_Mute || avgvol == PA_VOLUME_MUTED;
+		printw(" %s %s", muted ? "🔇" : "", it->second->m_Lock ? "🔒" : "");
 
 		//append sinkname
 		int      px = 0, py = 0;
@@ -161,7 +187,24 @@ void updatesinks(PAInterface *interface)
 		getyx(stdscr, py, px);
 		space = COLS - px - 3;
 
-		std::string sinkname = interface->getSinkInfo()[it->second.m_Sink].m_Name;
+		std::string sinkname = "";
+		switch (entryType)
+		{
+		case ENTRY_SINK:
+			sinkname = ((SinkEntry *)it->second.get())->getPort();
+			break;
+		case ENTRY_SOURCE:
+			sinkname = ((SourceEntry *)it->second.get())->getPort();
+			break;
+		case ENTRY_SINKINPUT:
+			sinkname = interface->getSinks()[((SinkInputEntry *)it->second.get())->m_Device]->m_Name;
+			break;
+		case ENTRY_SOURCEOUTPUT:
+			sinkname = interface->getSources()[((SourceOutputEntry *)it->second.get())->m_Device]->m_Name;
+			break;
+		default:
+			break;
+		}
 		if (space < sinkname.size())
 		{
 			sinkname = sinkname.substr(0, space - 3);
@@ -177,108 +220,94 @@ void updatesinks(PAInterface *interface)
 		y += 1;
 	}
 
-	numDisplayedInputs = index - skipInputs;
+	numDisplayedEntries = index - skipEntries;
 
 	interface->modifyUnlock();
 	refresh();
 }
 
-void updateMonitors(PAInterface *interface)
+void drawMonitors(PAInterface *interface)
 {
 	std::lock_guard<std::mutex> lg(screenMutex);
 	interface->modifyLock();
-	iter_inputinfo_t it    = std::next(interface->getInputInfo().begin(), skipInputs);
-	uint32_t         index = 0;
-	for (; it != interface->getInputInfo().end(); it++, index++)
+	iter_entry_t it    = std::next(entryMap->begin(), skipEntries);
+	uint32_t     index = 0;
+	for (; it != entryMap->end(); it++, index++)
 	{
-		if (index >= skipInputs + numDisplayedInputs)
+		if (index >= skipEntries + numDisplayedEntries)
 			break;
 		uint32_t y = mapMonitorLines[it->first];
-		generateMeter(y, 1, COLS - 2, it->second.m_Peak, 1.0);
+		generateMeter(y, 1, COLS - 2, it->second->m_Peak, 1.0);
 	}
 	interface->modifyUnlock();
 	refresh();
 }
 
-inline iter_inputinfo_t get_selected_input_iter(PAInterface *interface)
+inline iter_entry_t get_selected_input_iter(PAInterface *interface)
 {
-	return std::next(interface->getInputInfo().begin(), selectedInput);
+	return std::next(entryMap->begin(), selectedEntry);
 }
 
-void change_volume(double pctDelta, PAInterface *interface)
+inline void change_volume(double pctDelta, PAInterface *interface)
 {
-	iter_inputinfo_t it = get_selected_input_iter(interface);
-	interface->addVolume(it->first, it->second.m_ChannelsLocked ? -1 : selectedChannel, pctDelta);
+	iter_entry_t it = get_selected_input_iter(interface);
+	it->second->addVolume(interface, it->second->m_Lock ? -1 : selectedChannel, pctDelta);
 }
 
-void change_sink(bool increment, PAInterface *interface)
+inline void cycleSwitch(bool increment, PAInterface *interface)
 {
-	iter_inputinfo_t iit = get_selected_input_iter(interface);
-	iter_sinkinfo_t  sit = interface->getSinkInfo().find(iit->second.m_Sink);
-
-	if (increment)
-		sit++;
-	else
-	{
-		if (sit == interface->getSinkInfo().begin())
-			sit = std::next(sit, interface->getSinkInfo().size() - 1);
-		else
-			sit--;
-	}
-
-	if (sit == interface->getSinkInfo().end())
-		sit = interface->getSinkInfo().begin();
-
-	interface->setInputSink(iit->first, sit->first);
+	get_selected_input_iter(interface)->second->cycleSwitch(interface, increment);
 }
 
-void mute_input(PAInterface *interface)
+inline void mute_entry(PAInterface *interface)
 {
-	iter_inputinfo_t it = get_selected_input_iter(interface);
-	interface->setMute(it->first, !it->second.m_Mute);
+	iter_entry_t it = get_selected_input_iter(interface);
+	it->second->setMute(interface, !it->second->m_Mute);
 }
 
 void adjustDisplay()
 {
-	if (selectedInput >= skipInputs && selectedInput < skipInputs + numDisplayedInputs)
+	if (!entryMap->size())
 		return;
-	if (selectedInput < skipInputs)
+	if (selectedEntry >= skipEntries && selectedEntry < skipEntries + numDisplayedEntries)
+		return;
+	if (selectedEntry < skipEntries)
 	{
 		// scroll up until selected is at top
-		skipInputs = selectedInput;
+		skipEntries = selectedEntry;
 	}
 	else
 	{
 		// scroll down until selected is at bottom
 		uint32_t linesToFree = 0;
-		uint32_t idx         = skipInputs + numDisplayedInputs;
-		for (; idx <= selectedInput; idx++)
-			linesToFree += mapIndexSize[idx]; // +1 ?
+		uint32_t idx         = skipEntries + numDisplayedEntries;
+		for (; idx <= selectedEntry; idx++)
+			linesToFree += mapIndexSize[idx] + 2;
 
 		uint32_t linesFreed = 0;
-		idx                 = 0;
+		idx                 = skipEntries;
 		while (linesFreed < linesToFree)
-			linesFreed += mapIndexSize[idx++];
-		skipInputs = idx;
+			linesFreed += mapIndexSize[idx++] + 2;
+		skipEntries = idx;
 	}
 }
 
 void selectNext(PAInterface *interface, bool channelLevel = true)
 {
-	if (selectedInput < interface->getInputInfo().size())
+	if (selectedEntry < entryMap->size())
 	{
 		if (channelLevel)
 		{
-			iter_inputinfo_t it = get_selected_input_iter(interface);
-			if (!it->second.m_ChannelsLocked && selectedChannel < it->second.m_PAVolume.channels - 1)
+			iter_entry_t it = get_selected_input_iter(interface);
+			if (!it->second->m_Lock && selectedChannel < it->second->m_PAVolume.channels - 1)
 			{
 				selectedChannel++;
 				return;
 			}
 		}
-		selectedInput++;
-		if (selectedInput >= interface->getInputInfo().size())
-			selectedInput = interface->getInputInfo().size() - 1;
+		selectedEntry++;
+		if (selectedEntry >= entryMap->size())
+			selectedEntry = entryMap->size() - 1;
 		else
 			selectedChannel = 0;
 	}
@@ -287,22 +316,22 @@ void selectNext(PAInterface *interface, bool channelLevel = true)
 
 void selectPrev(PAInterface *interface, bool channelLevel = true)
 {
-	if (selectedInput < interface->getInputInfo().size())
+	if (selectedEntry < entryMap->size())
 	{
 		if (channelLevel)
 		{
-			iter_inputinfo_t it = get_selected_input_iter(interface);
-			if (!it->second.m_ChannelsLocked && selectedChannel > 0)
+			iter_entry_t it = get_selected_input_iter(interface);
+			if (!it->second->m_Lock && selectedChannel > 0)
 			{
 				selectedChannel--;
 				return;
 			}
 		}
-		if (selectedInput > 0)
-			selectedInput--;
-		else if (!get_selected_input_iter(interface)->second.m_ChannelsLocked)
+		if (selectedEntry > 0)
+			selectedEntry--;
+		else if (!get_selected_input_iter(interface)->second->m_Lock)
 		{
-			selectedChannel = get_selected_input_iter(interface)->second.m_PAVolume.channels - 1;
+			selectedChannel = get_selected_input_iter(interface)->second->m_PAVolume.channels - 1;
 		}
 	}
 	adjustDisplay();
@@ -310,8 +339,8 @@ void selectPrev(PAInterface *interface, bool channelLevel = true)
 
 void toggleChannelLock(PAInterface *interface)
 {
-	iter_inputinfo_t it         = get_selected_input_iter(interface);
-	it->second.m_ChannelsLocked = !it->second.m_ChannelsLocked;
+	iter_entry_t it    = get_selected_input_iter(interface);
+	it->second->m_Lock = !it->second->m_Lock;
 }
 
 void inputThread(PAInterface *interface)
@@ -321,6 +350,22 @@ void inputThread(PAInterface *interface)
 		int ch = getch();
 		switch (ch)
 		{
+		case KEY_F(1):
+			selectEntries(interface, ENTRY_SINKINPUT);
+			signal_update(true);
+			break;
+		case KEY_F(2):
+			selectEntries(interface, ENTRY_SOURCEOUTPUT);
+			signal_update(true);
+			break;
+		case KEY_F(3):
+			selectEntries(interface, ENTRY_SINK);
+			signal_update(true);
+			break;
+		case KEY_F(4):
+			selectEntries(interface, ENTRY_SOURCE);
+			signal_update(true);
+			break;
 		case 'h':
 			change_volume(-0.05, interface);
 			break;
@@ -350,13 +395,13 @@ void inputThread(PAInterface *interface)
 			signal_update(true);
 			break;
 		case 's':
-			change_sink(true, interface);
+			cycleSwitch(true, interface);
 			break;
 		case 'S':
-			change_sink(false, interface);
+			cycleSwitch(false, interface);
 			break;
 		case 'm':
-			mute_input(interface);
+			mute_entry(interface);
 			break;
 		case 'c':
 			toggleChannelLock(interface);
@@ -374,7 +419,7 @@ void inputThread(PAInterface *interface)
 
 void pai_subscription(PAInterface *interface, pai_subscription_type_t type)
 {
-	bool updAll = type & (PAI_SUBSCRIPTION_MASK_INPUT | PAI_SUBSCRIPTION_MASK_SINK);
+	bool updAll = type & PAI_SUBSCRIPTION_MASK_INFO;
 	signal_update(updAll);
 }
 
@@ -404,21 +449,23 @@ int main(int argc, char **argv)
 	initscr();
 	init_colors();
 	curs_set(0);
+	keypad(stdscr, true);
 	noecho();
 
 	signal(SIGABRT, sig_handle_abort);
 	signal(SIGWINCH, sig_handle_resize);
 
 	PAInterface pai("pamix");
+	selectEntries(&pai, ENTRY_SINKINPUT);
 	pai.subscribe(pai_subscription);
-	if(!pai.connect())
+	if (!pai.connect())
 	{
 		endwin();
 		fprintf(stderr, "Failed to connect to PulseAudio.\n");
 		exit(1);
 	}
 
-	updatesinks(&pai);
+	drawEntries(&pai);
 	std::thread inputT(inputThread, &pai);
 	inputT.detach();
 
@@ -428,9 +475,9 @@ int main(int argc, char **argv)
 		cv.wait(lk, [] { return !updateDataQ.empty(); });
 
 		if (updateDataQ.front().redrawAll)
-			updatesinks(&pai);
+			drawEntries(&pai);
 		else
-			updateMonitors(&pai);
+			drawMonitors(&pai);
 		updateDataQ.pop();
 	}
 	endwin();

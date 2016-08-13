@@ -12,43 +12,6 @@ mainloop_lockguard::~mainloop_lockguard()
 	pa_threaded_mainloop_unlock(m);
 }
 
-InputInfo::InputInfo(const pa_sink_input_info *info)
-{
-	update(info);
-	m_Peak    = 0.0;
-	m_Monitor = nullptr;
-}
-
-InputInfo::~InputInfo()
-{
-	if (m_Monitor)
-	{
-		pa_stream_disconnect(m_Monitor);
-		pa_stream_unref(m_Monitor);
-	}
-}
-
-void InputInfo::update(const pa_sink_input_info *info)
-{
-	m_Sink         = info->sink;
-	m_Appname      = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME);
-	m_Kill         = false;
-	m_Mute         = info->mute;
-	m_PAVolume     = info->volume;
-	m_PAChannelMap = info->channel_map;
-}
-
-pa_volume_t InputInfo::getAverageVolume()
-{
-	return pa_cvolume_avg(&m_PAVolume);
-}
-
-SinkInfo::SinkInfo(const pa_sink_info *info)
-{
-	m_MonitorSource = info->monitor_source;
-	m_Name          = pa_proplist_gets(info->proplist, PA_PROP_DEVICE_DESCRIPTION);
-}
-
 PAInterface::PAInterface(const char *context_name)
     : m_ContextName(context_name), m_Mainloop(0), m_MainloopApi(0), m_Context(0)
 {
@@ -77,13 +40,9 @@ void PAInterface::cb_success(pa_context *context, int success, void *interface)
 void PAInterface::cb_subscription_event(pa_context *context, pa_subscription_event_type_t type, uint32_t idx, void *interface)
 {
 	pai_subscription_type_t paisubtype = 0x0U;
-	if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SINK, type))
+	if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SOURCE | PA_SUBSCRIPTION_MASK_SINK_INPUT | PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT, type))
 	{
-		paisubtype = PAI_SUBSCRIPTION_MASK_SINK;
-	}
-	else if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SINK_INPUT, type))
-	{
-		paisubtype = PAI_SUBSCRIPTION_MASK_INPUT;
+		paisubtype = PAI_SUBSCRIPTION_MASK_INFO;
 	}
 	else
 	{
@@ -91,43 +50,84 @@ void PAInterface::cb_subscription_event(pa_context *context, pa_subscription_eve
 	}
 
 	std::thread updthread([=] {
-		if (paisubtype == PAI_SUBSCRIPTION_MASK_INPUT)
+		if (paisubtype == PAI_SUBSCRIPTION_MASK_INFO)
 		{
-			PAInterface::_updateInputs((PAInterface *)interface);
-		}
-		else if (paisubtype == PAI_SUBSCRIPTION_MASK_SINK)
-		{
-			PAInterface::_updateSinks((PAInterface *)interface);
+			if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SINK, type))
+				PAInterface::_updateSinks((PAInterface *)interface);
+			else if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SOURCE, type))
+				PAInterface::_updateSources((PAInterface *)interface);
+			else if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SINK_INPUT, type))
+				PAInterface::_updateInputs((PAInterface *)interface);
+			else if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT, type))
+				PAInterface::_updateOutputs((PAInterface *)interface);
 		}
 		((PAInterface *)interface)->notifySubscription(paisubtype);
 	});
 	updthread.detach();
 }
 
-void PAInterface::cb_sink_input_info(pa_context *context, const pa_sink_input_info *info, int eol, void *interface)
-{
-	if (eol == 0)
-	{
-		std::map<uint32_t, InputInfo> &infomap = ((PAInterface *)interface)->m_Sinkinputinfos;
-		infomap[info->index].update(info);
-	}
-	else
-		PAInterface::signal_mainloop((PAInterface *)interface);
-}
-
 void PAInterface::cb_sink_info(pa_context *context, const pa_sink_info *info, int eol, void *interface)
 {
 	if (!eol)
 	{
-		std::map<uint32_t, SinkInfo> &infomap = ((PAInterface *)interface)->m_Sinkinfos;
-		infomap[info->index] = SinkInfo(info);
+		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_Sinks;
+		if (!map.count(info->index))
+			map[info->index] = std::unique_ptr<Entry>(new SinkEntry());
+		map[info->index]->update(info);
 	}
 	else
 		PAInterface::signal_mainloop((PAInterface *)interface);
 }
 
-void PAInterface::cb_read(pa_stream *stream, size_t nbytes, void *interface)
+void PAInterface::cb_source_info(pa_context *context, const pa_source_info *info, int eol, void *interface)
 {
+	if (!eol)
+	{
+		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_Sources;
+		if (!map.count(info->index))
+			map[info->index] = std::unique_ptr<Entry>(new SourceEntry());
+		map[info->index]->update(info);
+	}
+	else
+		PAInterface::signal_mainloop((PAInterface *)interface);
+}
+
+void PAInterface::cb_sink_input_info(pa_context *context, const pa_sink_input_info *info, int eol, void *interface)
+{
+	if (!eol)
+	{
+		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_SinkInputs;
+		if (!map.count(info->index))
+			map[info->index] = std::unique_ptr<Entry>(new SinkInputEntry());
+		map[info->index]->update(info);
+	}
+	else
+		PAInterface::signal_mainloop((PAInterface *)interface);
+}
+
+void PAInterface::cb_source_output_info(pa_context *context, const pa_source_output_info *info, int eol, void *interface)
+{
+	if (!eol)
+	{
+		const char *appid = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_ID);
+		if (appid)
+		{
+			if (strcmp(appid, "pamix") == 0 || strcmp(appid, "org.PulseAudio.pavucontrol") == 0)
+				return;
+		}
+		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_SourceOutputs;
+		if (!map.count(info->index))
+			map[info->index] = std::unique_ptr<Entry>(new SourceOutputEntry());
+		map[info->index]->update(info);
+	}
+	else
+		PAInterface::signal_mainloop((PAInterface *)interface);
+}
+
+void PAInterface::cb_read(pa_stream *stream, size_t nbytes, void *iepair)
+{
+	interface_entry_pair *pair = reinterpret_cast<interface_entry_pair *>(iepair);
+
 	const void *data;
 	double      v;
 	pa_stream_peek(stream, &data, &nbytes);
@@ -145,54 +145,63 @@ void PAInterface::cb_read(pa_stream *stream, size_t nbytes, void *interface)
 	pa_stream_drop(stream);
 
 	if (v < 0)
-	{
 		v = 0;
-	}
-
-	if (v > 1)
-	{
+	else if (v > 1)
 		v = 1;
-	}
 
-	((PAInterface *)interface)->m_Sinkinputinfos[pa_stream_get_monitor_stream(stream)].m_Peak = v;
-	((PAInterface *)interface)->notifySubscription(PAI_SUBSCRIPTION_MASK_PEAK);
+	pair->e->m_Peak = v;
+	pair->i->notifySubscription(PAI_SUBSCRIPTION_MASK_PEAK);
 }
 
-void PAInterface::cb_stream_state(pa_stream *stream, void *inputinfo)
+void PAInterface::cb_stream_state(pa_stream *stream, void *entry)
 {
 	pa_stream_state_t state = pa_stream_get_state(stream);
 	if (state == PA_STREAM_TERMINATED || state == PA_STREAM_FAILED)
 	{
-		((InputInfo *)inputinfo)->m_Monitor = nullptr;
+		((Entry *)entry)->m_Monitor = nullptr;
 	}
 }
 
-void PAInterface::_updateInputs(PAInterface *interface)
+void __updateEntries(PAInterface *interface, std::map<uint32_t, std::unique_ptr<Entry>> &map, entry_type entrytype)
 {
-	mainloop_lockguard lg(interface->m_Mainloop);
+	mainloop_lockguard lg(interface->getPAMainloop());
 
-	for (iter_inputinfo_t it = interface->m_Sinkinputinfos.begin(); it != interface->m_Sinkinputinfos.end(); it++)
-		it->second.m_Kill = true;
+	for (iter_entry_t it = map.begin(); it != map.end(); it++)
+		it->second->m_Kill = true;
 
-	pa_operation *infooper = pa_context_get_sink_input_info_list(interface->m_Context, &PAInterface::cb_sink_input_info, interface);
+	pa_operation *infooper = nullptr;
+	switch (entrytype)
+	{
+	case ENTRY_SINK:
+		infooper = pa_context_get_sink_info_list(interface->getPAContext(), &PAInterface::cb_sink_info, interface);
+		break;
+	case ENTRY_SOURCE:
+		infooper = pa_context_get_source_info_list(interface->getPAContext(), &PAInterface::cb_source_info, interface);
+		break;
+	case ENTRY_SINKINPUT:
+		infooper = pa_context_get_sink_input_info_list(interface->getPAContext(), &PAInterface::cb_sink_input_info, interface);
+		break;
+	case ENTRY_SOURCEOUTPUT:
+		infooper = pa_context_get_source_output_info_list(interface->getPAContext(), &PAInterface::cb_source_output_info, interface);
+		break;
+	default:
+		return;
+	}
 	assert(infooper);
 
 	while (pa_operation_get_state(infooper) == PA_OPERATION_RUNNING)
-		pa_threaded_mainloop_wait(interface->m_Mainloop);
-
+		pa_threaded_mainloop_wait(interface->getPAMainloop());
 	pa_operation_unref(infooper);
 
 	interface->modifyLock();
-	for (iter_inputinfo_t it = interface->m_Sinkinputinfos.begin(); it != interface->m_Sinkinputinfos.end();)
+	for (iter_entry_t it = map.begin(); it != map.end();)
 	{
-		if (it->second.m_Kill)
-		{
-			it = interface->m_Sinkinputinfos.erase(it);
-		}
+		if (it->second->m_Kill)
+			it = map.erase(it);
 		else
 		{
-			if (!it->second.m_Monitor)
-				interface->createMonitorStreamForSinkInput(it);
+			if (!it->second->m_Monitor)
+				interface->createMonitorStreamForEntry(it->second.get(), entrytype);
 			it++;
 		}
 	}
@@ -201,16 +210,22 @@ void PAInterface::_updateInputs(PAInterface *interface)
 
 void PAInterface::_updateSinks(PAInterface *interface)
 {
-	mainloop_lockguard lg(interface->m_Mainloop);
-	interface->m_Sinkinfos.clear();
+	__updateEntries(interface, interface->getSinks(), ENTRY_SINK);
+}
 
-	pa_operation *infooper = pa_context_get_sink_info_list(interface->m_Context, &PAInterface::cb_sink_info, interface);
-	assert(infooper);
+void PAInterface::_updateSources(PAInterface *interface)
+{
+	__updateEntries(interface, interface->getSources(), ENTRY_SOURCE);
+}
 
-	while (pa_operation_get_state(infooper) == PA_OPERATION_RUNNING)
-		pa_threaded_mainloop_wait(interface->m_Mainloop);
+void PAInterface::_updateInputs(PAInterface *interface)
+{
+	__updateEntries(interface, interface->getSinkInputs(), ENTRY_SINKINPUT);
+}
 
-	pa_operation_unref(infooper);
+void PAInterface::_updateOutputs(PAInterface *interface)
+{
+	__updateEntries(interface, interface->getSourceOutputs(), ENTRY_SOURCEOUTPUT);
 }
 
 bool PAInterface::connect()
@@ -220,7 +235,13 @@ bool PAInterface::connect()
 	assert(m_Mainloop);
 
 	m_MainloopApi = pa_threaded_mainloop_get_api(m_Mainloop);
-	m_Context     = pa_context_new(m_MainloopApi, m_ContextName);
+
+	pa_proplist *plist = pa_proplist_new();
+	pa_proplist_sets(plist, PA_PROP_APPLICATION_ID, m_ContextName);
+	pa_proplist_sets(plist, PA_PROP_APPLICATION_NAME, m_ContextName);
+	m_Context = pa_context_new_with_proplist(m_MainloopApi, NULL, plist);
+	pa_proplist_free(plist);
+
 	assert(m_Context);
 
 	pa_context_set_state_callback(m_Context, &PAInterface::cb_context_state, this);
@@ -248,8 +269,11 @@ bool PAInterface::connect()
 	pa_operation_unref(subscrop);
 
 	pa_threaded_mainloop_unlock(m_Mainloop);
+
 	updateSinks();
+	updateSources();
 	updateInputs();
+	updateOutputs();
 	return true;
 }
 
@@ -269,24 +293,10 @@ bool PAInterface::isConnected()
 	return m_Context ? pa_context_get_state(m_Context) == PA_CONTEXT_READY : false;
 }
 
-void PAInterface::updateInputs()
+pa_stream *_createMonitor(PAInterface *interface, uint32_t source, Entry *entry, uint32_t stream)
 {
-	PAInterface::_updateInputs(this);
-}
-
-void PAInterface::updateSinks()
-{
-	PAInterface::_updateSinks(this);
-}
-
-int PAInterface::createMonitorStreamForSinkInput(iter_inputinfo_t &iiiter)
-{
-	if (!m_Sinkinfos.count(iiiter->second.m_Sink))
-		return -1;
-	uint32_t   monitorsrc = m_Sinkinfos[iiiter->second.m_Sink].m_MonitorSource;
-	char       t[16];
-	InputInfo &ii = iiiter->second;
-
+	pa_stream *       s;
+	char              t[16];
 	pa_buffer_attr    attr;
 	pa_sample_spec    ss;
 	pa_stream_flags_t flags;
@@ -299,27 +309,47 @@ int PAInterface::createMonitorStreamForSinkInput(iter_inputinfo_t &iiiter)
 	attr.fragsize  = sizeof(float);
 	attr.maxlength = (uint32_t)-1;
 
-	snprintf(t, sizeof(t), "%u", monitorsrc);
+	snprintf(t, sizeof(t), "%u", source);
 
-	if (ii.m_Monitor)
-	{
-		pa_stream_disconnect(ii.m_Monitor);
-		pa_stream_unref(ii.m_Monitor);
-		ii.m_Monitor = nullptr;
-	}
+	s = pa_stream_new(interface->getPAContext(), "PeakDetect", &ss, NULL);
+	if (!s)
+		return nullptr;
+	if (stream != (uint32_t)-1)
+		pa_stream_set_monitor_stream(s, stream);
 
-	ii.m_Monitor = pa_stream_new(m_Context, "PeakDetect", &ss, NULL);
-	assert(ii.m_Monitor);
-	pa_stream_ref(ii.m_Monitor);
+	interface_entry_pair *pair = new interface_entry_pair();
+	pair->i                    = interface;
+	pair->e                    = entry;
+	interface->m_IEPairs.push_back(pair);
 
-	pa_stream_set_monitor_stream(ii.m_Monitor, iiiter->first);
-
-	pa_stream_set_read_callback(ii.m_Monitor, &PAInterface::cb_read, this);
-	pa_stream_set_state_callback(ii.m_Monitor, &PAInterface::cb_stream_state, &ii);
+	pa_stream_set_read_callback(s, &PAInterface::cb_read, pair);
+	pa_stream_set_state_callback(s, &PAInterface::cb_stream_state, entry);
 
 	flags = (pa_stream_flags_t)(PA_STREAM_DONT_MOVE | PA_STREAM_PEAK_DETECT | PA_STREAM_ADJUST_LATENCY);
-	assert(pa_stream_connect_record(ii.m_Monitor, NULL, &attr, flags) >= 0);
-	return 0;
+	if (pa_stream_connect_record(s, (stream != (uint32_t)-1) ? 0 : t, &attr, flags) < 0)
+	{
+		pa_stream_unref(s);
+		return nullptr;
+	}
+	return s;
+}
+
+void PAInterface::createMonitorStreamForEntry(Entry *entry, int type)
+{
+	if (entry->m_Monitor)
+	{
+		pa_stream_disconnect(entry->m_Monitor);
+		entry->m_Monitor = nullptr;
+	}
+
+	if (type == ENTRY_SINKINPUT)
+	{
+		entry->m_Monitor = _createMonitor(this, m_Sinks[((SinkInputEntry *)(entry))->m_Device]->m_Index, entry, entry->m_Index);
+	}
+	else
+	{
+		entry->m_Monitor = _createMonitor(this, entry->m_MonitorIndex, entry, -1);
+	}
 }
 
 void PAInterface::subscribe(pai_subscription_cb callback)
@@ -335,82 +365,6 @@ void PAInterface::notifySubscription(const pai_subscription_type_t type)
 	}
 }
 
-std::map<uint32_t, InputInfo> &PAInterface::getInputInfo()
-{
-	return m_Sinkinputinfos;
-}
-
-std::map<uint32_t, SinkInfo> &PAInterface::getSinkInfo()
-{
-	return m_Sinkinfos;
-}
-
-void PAInterface::addVolume(const uint32_t inputidx, const int channel, const double pctDelta)
-{
-	mainloop_lockguard lg(m_Mainloop);
-
-	int delta = round(pctDelta * PA_VOLUME_NORM);
-	assert(getInputInfo().count(inputidx));
-
-	pa_cvolume *volume = &getInputInfo().find(inputidx)->second.m_PAVolume;
-
-	pa_volume_t vol = channel == -1 ? pa_cvolume_avg(volume) : volume->values[channel];
-
-	if (delta > 0)
-	{
-		if (vol + delta > vol)
-		{
-			if (vol + delta > PA_VOLUME_NORM * 1.5)
-			{
-				vol = PA_VOLUME_NORM * 1.5;
-			}
-			else
-			{
-				vol += delta;
-			}
-		}
-	}
-	else
-	{
-		if (vol + delta < vol)
-		{
-			vol += delta;
-		}
-		else
-		{
-			vol = PA_VOLUME_MUTED;
-		}
-	}
-
-	if (channel == -1)
-		pa_cvolume_set(volume, getInputInfo()[inputidx].m_PAVolume.channels, vol);
-	else
-		volume->values[channel] = vol;
-
-	pa_operation *op = pa_context_set_sink_input_volume(m_Context, inputidx, volume, &PAInterface::cb_success, this);
-	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
-		pa_threaded_mainloop_wait(m_Mainloop);
-	pa_operation_unref(op);
-}
-
-void PAInterface::setInputSink(const uint32_t inputidx, const uint32_t sinkidx)
-{
-	mainloop_lockguard lg(m_Mainloop);
-	pa_operation *     op = pa_context_move_sink_input_by_index(m_Context, inputidx, sinkidx, &PAInterface::cb_success, this);
-	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
-		pa_threaded_mainloop_wait(m_Mainloop);
-	pa_operation_unref(op);
-}
-
-void PAInterface::setMute(const uint32_t inputidx, bool mute)
-{
-	mainloop_lockguard lg(m_Mainloop);
-	pa_operation *     op = pa_context_set_sink_input_mute(m_Context, inputidx, mute, &PAInterface::cb_success, this);
-
-	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
-		pa_threaded_mainloop_wait(m_Mainloop);
-	pa_operation_unref(op);
-}
 void PAInterface::modifyLock()
 {
 	m_modifyMutex.lock();

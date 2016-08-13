@@ -3,10 +3,12 @@
 #include <assert.h>
 #include <cstring>
 #include <ctgmath>
+#include <entry.hpp>
 #include <map>
 #include <mutex>
 #include <pulse/pulseaudio.h>
 #include <thread>
+#include <vector>
 
 struct mainloop_lockguard
 {
@@ -15,48 +17,24 @@ struct mainloop_lockguard
 	~mainloop_lockguard();
 };
 
-struct InputInfo
+class PAInterface;
+struct Entry;
+
+struct interface_entry_pair
 {
-	std::string    m_Appname;
-	uint32_t       m_Sink;
-	pa_stream *    m_Monitor;
-	double         m_Peak;
-	bool           m_Kill;
-	bool           m_Mute;
-	pa_cvolume     m_PAVolume;
-	pa_channel_map m_PAChannelMap;
-	bool           m_ChannelsLocked = true;
-
-	InputInfo(const pa_sink_input_info *info);
-	InputInfo() = default;
-	~InputInfo();
-
-	void update(const pa_sink_input_info *info);
-	pa_volume_t getAverageVolume();
+	PAInterface *i;
+	Entry *      e;
 };
-
-struct SinkInfo
-{
-	uint32_t    m_MonitorSource;
-	std::string m_Name;
-
-	SinkInfo(const pa_sink_info *info);
-	SinkInfo() = default;
-};
-
-typedef std::map<uint32_t, InputInfo>::iterator iter_inputinfo_t;
-typedef std::map<uint32_t, SinkInfo>::iterator  iter_sinkinfo_t;
 
 //define subscription masks
 #define PAI_SUBSCRIPTION_MASK_PEAK 0x1U
-#define PAI_SUBSCRIPTION_MASK_INPUT 0x2U
-#define PAI_SUBSCRIPTION_MASK_SINK 0x4U
-#define PAI_SUBSCRIPTION_MASK_OTHER 0x8U
+#define PAI_SUBSCRIPTION_MASK_INFO 0x2U
+#define PAI_SUBSCRIPTION_MASK_OTHER 0x4U
 
 typedef uint32_t pai_subscription_type_t;
 
-class PAInterface;
 typedef void (*pai_subscription_cb)(PAInterface *, const pai_subscription_type_t);
+typedef std::map<uint32_t, std::unique_ptr<Entry>>::iterator iter_entry_t;
 
 class PAInterface
 {
@@ -66,8 +44,10 @@ private:
 	pa_mainloop_api *     m_MainloopApi;
 	pa_context *          m_Context;
 
-	std::map<uint32_t, InputInfo> m_Sinkinputinfos;
-	std::map<uint32_t, SinkInfo>  m_Sinkinfos;
+	std::map<uint32_t, std::unique_ptr<Entry>> m_Sinks;
+	std::map<uint32_t, std::unique_ptr<Entry>> m_Sources;
+	std::map<uint32_t, std::unique_ptr<Entry>> m_SinkInputs;
+	std::map<uint32_t, std::unique_ptr<Entry>> m_SourceOutputs;
 
 	std::mutex m_modifyMutex;
 
@@ -75,29 +55,27 @@ private:
 
 private:
 	static void signal_mainloop(void *interface);
-	//PulseAudio API Callbacks
-	//userptr points to current PAInterface instance
-	static void cb_context_state(pa_context *context, void *interface);
-	static void cb_success(pa_context *context, int success, void *interface);
-	static void cb_subscription_event(pa_context *context, pa_subscription_event_type_t type, uint32_t idx, void *interface);
-	static void cb_sink_input_info(pa_context *context, const pa_sink_input_info *info, int eol, void *interface);
-	static void cb_sink_info(pa_context *context, const pa_sink_info *info, int eol, void *interface);
-	static void cb_read(pa_stream *stream, size_t nbytes, void *interface);
-	static void cb_stream_state(pa_stream *stream, void *inputinfo);
 
-	static void _updateInputs(PAInterface *interface);
 	static void _updateSinks(PAInterface *interface);
+	static void _updateSources(PAInterface *interface);
+	static void _updateInputs(PAInterface *interface);
+	static void _updateOutputs(PAInterface *interface);
 
 	//member methods
 
-	void updateInputs();
-	void updateSinks();
+	void updateSinks() { _updateSinks(this); }
+	void updateSources() { _updateSources(this); }
+	void updateInputs() { _updateInputs(this); }
+	void updateOutputs() { _updateOutputs(this); }
+
 	void notifySubscription(const pai_subscription_type_t);
-	int createMonitorStreamForSinkInput(iter_inputinfo_t &iiiter);
 
 public:
 	PAInterface(const char *context_name);
 	~PAInterface();
+
+	inline pa_threaded_mainloop *getPAMainloop() { return m_Mainloop; }
+	inline pa_context *          getPAContext() { return m_Context; }
 
 	bool connect();
 	void disconnect();
@@ -105,16 +83,28 @@ public:
 
 	void subscribe(pai_subscription_cb callback);
 
-	std::map<uint32_t, InputInfo> &getInputInfo();
+	std::map<uint32_t, std::unique_ptr<Entry>> &getSinks() { return m_Sinks; }
+	std::map<uint32_t, std::unique_ptr<Entry>> &getSources() { return m_Sources; }
+	std::map<uint32_t, std::unique_ptr<Entry>> &getSinkInputs() { return m_SinkInputs; }
+	std::map<uint32_t, std::unique_ptr<Entry>> &getSourceOutputs() { return m_SourceOutputs; }
 
-	std::map<uint32_t, SinkInfo> &getSinkInfo();
-
-	void addVolume(const uint32_t inputidx, const int channel, const double pctDelta);
-
-	void setInputSink(const uint32_t inputidx, const uint32_t sinkidx);
-
-	void setMute(const uint32_t inputidx, bool mute);
+	std::vector<interface_entry_pair *> m_IEPairs;
+	void createMonitorStreamForEntry(Entry *entry, int type);
 
 	void modifyLock();
 	void modifyUnlock();
+
+	//PulseAudio API Callbacks
+	//userptr points to current PAInterface instance
+	static void cb_context_state(pa_context *context, void *interface);
+	static void cb_success(pa_context *context, int success, void *interface);
+	static void cb_subscription_event(pa_context *context, pa_subscription_event_type_t type, uint32_t idx, void *interface);
+
+	static void cb_sink_info(pa_context *context, const pa_sink_info *info, int eol, void *interface);
+	static void cb_source_info(pa_context *context, const pa_source_info *info, int eol, void *interface);
+	static void cb_sink_input_info(pa_context *context, const pa_sink_input_info *info, int eol, void *interface);
+	static void cb_source_output_info(pa_context *context, const pa_source_output_info *info, int eol, void *interface);
+
+	static void cb_read(pa_stream *stream, size_t nbytes, void *iepair);
+	static void cb_stream_state(pa_stream *stream, void *entry);
 };
