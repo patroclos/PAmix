@@ -1,5 +1,4 @@
-# PAMix - the one and only pulseaudio terminal mixer
-(not litterally, there are also pacmixer and pulsemixer, but this one has the fewest dependencies, also its cooler)
+# PAMix - the pulseaudio terminal mixer
 
 ![alt tag](https://media.giphy.com/media/3owyoYKCrBCDo5eUak/giphy.gif)
 
@@ -7,22 +6,33 @@
 
 | Effect                     | Key |
 |----------------------------|-----|
-| Quit                       | q   |
+| Playback tab               | F1  |
+| Recording Tab              | F2  |
+| Output Devices             | F3  |
+| Input Devices              | F4  |
 | Decrease Volume            | h   |
 | Increase Volume            | l   |
 | Select Next                | j   |
-| Select Next SinkInput      | J   |
+| Jump to next Entry         | J   |
 | Select Previous            | k   |
-| Select Previous SinkInput  | K   |
+| Jump to previous Entry     | K   |
 | (Un)Mute                   | m   |
-| Next/Previous sink         | s/S |
+| Next/Previous device/port  | s/S |
 | (Un)Lock Channels together | c   |
+| Quit                       | q   |
 
 
 # Dependencies: #
 	- PulseAudio (duh)
 	- Ncurses
 
-# Building: #
+# Installation: #
+## Gentoo ##
+`emerge media-sound/pamix`
+
+## Arch ##
+`yaourt -S pamix-git`
+
+# Building Manually: #
 - Clone and CD into directory
 - run 'make' and 'make install'
