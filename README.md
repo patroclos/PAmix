@@ -34,5 +34,5 @@
 `yaourt -S pamix-git`
 
 # Building Manually: #
-- Clone and CD into directory
-- run 'make' and 'make install'
+Run `./configure`, `make` and `make install`
+
