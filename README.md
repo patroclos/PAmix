@@ -23,7 +23,7 @@
 
 
 # Dependencies: #
-	- PulseAudio (duh)
+	- PulseAudio
 	- Ncurses
 
 # Installation: #
@@ -34,5 +34,5 @@
 `yaourt -S pamix-git`
 
 # Building Manually: #
-Run `./configure`, `make` and `make install`
+Run `autoreconf -i`, `./configure`, `make` and `make install`
 
