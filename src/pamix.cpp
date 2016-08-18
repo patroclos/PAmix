@@ -346,8 +346,9 @@ void selectPrev(PAInterface *interface, bool channelLevel = true)
 
 void toggleChannelLock(PAInterface *interface)
 {
-	iter_entry_t it    = get_selected_input_iter(interface);
-	it->second->m_Lock = !it->second->m_Lock;
+	iter_entry_t it = get_selected_input_iter(interface);
+	if (it != entryMap->end())
+		it->second->m_Lock = !it->second->m_Lock;
 }
 
 void inputThread(PAInterface *interface)
