@@ -245,24 +245,31 @@ void drawMonitors(PAInterface *interface)
 
 inline iter_entry_t get_selected_input_iter(PAInterface *interface)
 {
-	return std::next(entryMap->begin(), selectedEntry);
+	if (selectedEntry < entryMap->size())
+		return std::next(entryMap->begin(), selectedEntry);
+	else
+		return entryMap->end();
 }
 
 inline void change_volume(double pctDelta, PAInterface *interface)
 {
 	iter_entry_t it = get_selected_input_iter(interface);
-	it->second->addVolume(interface, it->second->m_Lock ? -1 : selectedChannel, pctDelta);
+	if (it != entryMap->end())
+		it->second->addVolume(interface, it->second->m_Lock ? -1 : selectedChannel, pctDelta);
 }
 
 inline void cycleSwitch(bool increment, PAInterface *interface)
 {
-	get_selected_input_iter(interface)->second->cycleSwitch(interface, increment);
+	iter_entry_t it = get_selected_input_iter(interface);
+	if (it != entryMap->end())
+		it->second->cycleSwitch(interface, increment);
 }
 
 inline void mute_entry(PAInterface *interface)
 {
 	iter_entry_t it = get_selected_input_iter(interface);
-	it->second->setMute(interface, !it->second->m_Mute);
+	if (it != entryMap->end())
+		it->second->setMute(interface, !it->second->m_Mute);
 }
 
 void adjustDisplay()
