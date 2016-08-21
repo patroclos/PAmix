@@ -34,5 +34,16 @@
 `yaourt -S pamix-git`
 
 # Building Manually: #
-Run `autoreconf -i`, `./configure`, `make` and `make install`
+
+## Configuration ##
+Generate configure script by running `autoreconf -i` and then run `./configure` with your preferred options
+
+### Options ###
+`--disable-unicode` depends on ncurses instead of ncursesw and replaces unicode symbols with ascii
+
+## Building ##
+Run `make`
+
+## Installing ##
+Run `make install`
 

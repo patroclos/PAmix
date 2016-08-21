@@ -8,6 +8,10 @@
 #include <string>
 #include <thread>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 struct UpdateData
 {
 	bool redrawAll;
@@ -17,8 +21,24 @@ struct UpdateData
 
 #define DECAY_STEP 0.04
 #define MAX_VOL 1.5
+
+#ifdef FEAT_UNICODE
 #define SYM_VOLBAR L'\u25ae' //▮
-#define SYM_SPACE L'\u0020' // White space
+#define SYM_ARROW "\u25b6 " //▶
+#define SYM_MUTE "🔇"
+#define SYM_LOCK "🔒"
+#define SYM_SPACE L' '
+#define FEAT_UNICODE_STRING std::wstring
+#define FEAT_UNICODE_MVADDNSTR(y, x, str, n) mvaddnwstr(y, x, str, n);
+#else
+#define SYM_VOLBAR '|'
+#define SYM_ARROW "> "
+#define SYM_MUTE "M"
+#define SYM_LOCK "L"
+#define SYM_SPACE ' '
+#define FEAT_UNICODE_STRING std::string
+#define FEAT_UNICODE_MVADDNSTR(y, x, str, n) mvaddnstr(y, x, str, n);
+#endif
 
 // GLOBAL VARIABLES
 bool     running         = true;
@@ -89,18 +109,18 @@ void generateMeter(int y, int x, int width, const double pct, const double maxvo
 	int indexColorA = segments * ((double)1 / 3);
 	int indexColorB = segments * ((double)2 / 3);
 
-	std::wstring meter;
+	FEAT_UNICODE_STRING meter;
 
 	meter.append(filled, SYM_VOLBAR);
 	meter.append(segments - filled, SYM_SPACE);
 	attron(COLOR_PAIR(1));
-	mvwaddnwstr(stdscr, y, x, meter.c_str(), indexColorA);
+	FEAT_UNICODE_MVADDNSTR(y, x, meter.c_str(), indexColorA);
 	attroff(COLOR_PAIR(1));
 	attron(COLOR_PAIR(2));
-	mvwaddnwstr(stdscr, y, x + indexColorA, meter.c_str() + indexColorA, indexColorB - indexColorA);
+	FEAT_UNICODE_MVADDNSTR(y, x + indexColorA, meter.c_str() + indexColorA, indexColorB - indexColorA);
 	attroff(COLOR_PAIR(2));
 	attron(COLOR_PAIR(3));
-	mvwaddnwstr(stdscr, y, x + indexColorB, meter.c_str() + indexColorB, segments - indexColorB);
+	FEAT_UNICODE_MVADDNSTR(y, x + indexColorB, meter.c_str() + indexColorB, segments - indexColorB);
 	attroff(COLOR_PAIR(3));
 }
 
@@ -147,7 +167,7 @@ void drawEntries(PAInterface *interface)
 
 			std::string descstring = "%.2fdB (%.2f)";
 			if (isSelectedEntry)
-				descstring.insert(0, "▶ ");
+				descstring.insert(0, SYM_ARROW);
 			mvprintw(y++, 1, descstring.c_str(), dB, vol);
 		}
 		else
@@ -161,7 +181,7 @@ void drawEntries(PAInterface *interface)
 				generateMeter(y, 32, COLS - 33, cvol, MAX_VOL);
 				std::string descstring = "%.*s  %.2fdB (%.2f)";
 				if (isSelChannel)
-					descstring.insert(0, "▶ ");
+					descstring.insert(0, SYM_ARROW);
 
 				mvprintw(y++, 1, descstring.c_str(), isSelChannel ? 13 : 15, channame.c_str(), cdB, cvol);
 			}
@@ -179,7 +199,7 @@ void drawEntries(PAInterface *interface)
 		if (isSelectedEntry)
 			attroff(A_STANDOUT);
 		bool muted = it->second->m_Mute || avgvol == PA_VOLUME_MUTED;
-		printw(" %s %s", muted ? "🔇" : "", it->second->m_Lock ? "🔒" : "");
+		printw(" %s %s", muted ? SYM_MUTE : "", it->second->m_Lock ? SYM_LOCK : "");
 
 		//append sinkname
 		int      px = 0, py = 0;

@@ -15,8 +15,17 @@ AX_CXX_COMPILE_STDCXX_11(,[mandatory])
 # Checks for programs.
 AC_PROG_CXX
 
+# Check options
+AC_MSG_CHECKING([--enable-unicode argument])
+AC_ARG_ENABLE([unicode], AS_HELP_STRING([--enable-unicode], [Enable unicode support.]), [enable_unicode=$enableval], [enable_unicode="yes"])
+AC_MSG_RESULT([$enable_unicode])
+if test "$enable_unicode" = "yes"; then
+	AC_DEFINE([FEAT_UNICODE], [1], [Enable unicode support])
+fi
+
 # Checks for libraries.
-PKG_CHECK_MODULES([NCURSESW], [ncursesw])
+
+AS_IF([test "$enable_unicode" = "yes"], [PKG_CHECK_MODULES([NCURSES], [ncursesw])], [PKG_CHECK_MODULES([NCURSES], [ncurses])])
 PKG_CHECK_MODULES([PULSEAUDIO], [libpulse])
 
 # Checks for header files.
