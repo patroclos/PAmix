@@ -508,7 +508,7 @@ void init_colors()
 	init_pair(3, COLOR_RED, 0);
 }
 
-void sig_handle_abort(int sig)
+void sig_handle(int sig)
 {
 	endwin();
 }
@@ -522,7 +522,8 @@ int main(int argc, char **argv)
 	keypad(stdscr, true);
 	noecho();
 
-	signal(SIGABRT, sig_handle_abort);
+	signal(SIGABRT, sig_handle);
+	signal(SIGSEGV, sig_handle);
 	signal(SIGWINCH, sig_handle_resize);
 
 	PAInterface pai("pamix");
