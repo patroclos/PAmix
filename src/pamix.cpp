@@ -240,7 +240,7 @@ void drawEntries(PAInterface *interface)
 		{
 			space -= sinkname.size();
 		}
-		mvprintw(py, px + space+1, sinkname.c_str());
+		mvprintw(py, px + space + 1, sinkname.c_str());
 
 		y += 1;
 	}
@@ -407,34 +407,34 @@ void inputThread(PAInterface *interface)
 			signal_update(true);
 			break;
 		case '1':
-			set_volume(0.1,interface);
+			set_volume(0.1, interface);
 			break;
 		case '2':
-			set_volume(0.2,interface);
+			set_volume(0.2, interface);
 			break;
 		case '3':
-			set_volume(0.3,interface);
+			set_volume(0.3, interface);
 			break;
 		case '4':
-			set_volume(0.4,interface);
+			set_volume(0.4, interface);
 			break;
 		case '5':
-			set_volume(0.5,interface);
+			set_volume(0.5, interface);
 			break;
 		case '6':
-			set_volume(0.6,interface);
+			set_volume(0.6, interface);
 			break;
 		case '7':
-			set_volume(0.7,interface);
+			set_volume(0.7, interface);
 			break;
 		case '8':
-			set_volume(0.8,interface);
+			set_volume(0.8, interface);
 			break;
 		case '9':
-			set_volume(0.9,interface);
+			set_volume(0.9, interface);
 			break;
 		case '0':
-			set_volume(1.0,interface);
+			set_volume(1.0, interface);
 			break;
 		case 'h':
 			add_volume(-0.05, interface);
