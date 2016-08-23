@@ -263,7 +263,7 @@ void drawMonitors(PAInterface *interface)
 	refresh();
 }
 
-inline iter_entry_t get_selected_input_iter(PAInterface *interface)
+inline iter_entry_t get_selected_entry_iter(PAInterface *interface)
 {
 	if (selectedEntry < entryMap->size())
 		return std::next(entryMap->begin(), selectedEntry);
@@ -271,23 +271,30 @@ inline iter_entry_t get_selected_input_iter(PAInterface *interface)
 		return entryMap->end();
 }
 
-inline void change_volume(double pctDelta, PAInterface *interface)
+inline void set_volume(double pct, PAInterface *interface)
 {
-	iter_entry_t it = get_selected_input_iter(interface);
+	iter_entry_t it = get_selected_entry_iter(interface);
+	if (it != entryMap->end())
+		it->second->setVolume(interface, it->second->m_Lock ? -1 : selectedChannel, PA_VOLUME_NORM * pct);
+}
+
+inline void add_volume(double pctDelta, PAInterface *interface)
+{
+	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
 		it->second->addVolume(interface, it->second->m_Lock ? -1 : selectedChannel, pctDelta);
 }
 
 inline void cycleSwitch(bool increment, PAInterface *interface)
 {
-	iter_entry_t it = get_selected_input_iter(interface);
+	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
 		it->second->cycleSwitch(interface, increment);
 }
 
 inline void mute_entry(PAInterface *interface)
 {
-	iter_entry_t it = get_selected_input_iter(interface);
+	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
 		it->second->setMute(interface, !it->second->m_Mute);
 }
@@ -325,7 +332,7 @@ void selectNext(PAInterface *interface, bool channelLevel = true)
 	{
 		if (channelLevel)
 		{
-			iter_entry_t it = get_selected_input_iter(interface);
+			iter_entry_t it = get_selected_entry_iter(interface);
 			if (!it->second->m_Lock && selectedChannel < it->second->m_PAVolume.channels - 1)
 			{
 				selectedChannel++;
@@ -347,7 +354,7 @@ void selectPrev(PAInterface *interface, bool channelLevel = true)
 	{
 		if (channelLevel)
 		{
-			iter_entry_t it = get_selected_input_iter(interface);
+			iter_entry_t it = get_selected_entry_iter(interface);
 			if (!it->second->m_Lock && selectedChannel > 0)
 			{
 				selectedChannel--;
@@ -356,9 +363,9 @@ void selectPrev(PAInterface *interface, bool channelLevel = true)
 		}
 		if (selectedEntry > 0)
 			selectedEntry--;
-		else if (!get_selected_input_iter(interface)->second->m_Lock)
+		else if (!get_selected_entry_iter(interface)->second->m_Lock)
 		{
-			selectedChannel = get_selected_input_iter(interface)->second->m_PAVolume.channels - 1;
+			selectedChannel = get_selected_entry_iter(interface)->second->m_PAVolume.channels - 1;
 		}
 	}
 	adjustDisplay();
@@ -366,7 +373,7 @@ void selectPrev(PAInterface *interface, bool channelLevel = true)
 
 void toggleChannelLock(PAInterface *interface)
 {
-	iter_entry_t it = get_selected_input_iter(interface);
+	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
 		it->second->m_Lock = !it->second->m_Lock;
 }
@@ -394,17 +401,47 @@ void inputThread(PAInterface *interface)
 			selectEntries(interface, ENTRY_SOURCE);
 			signal_update(true);
 			break;
+		case '1':
+			set_volume(0.1,interface);
+			break;
+		case '2':
+			set_volume(0.2,interface);
+			break;
+		case '3':
+			set_volume(0.3,interface);
+			break;
+		case '4':
+			set_volume(0.4,interface);
+			break;
+		case '5':
+			set_volume(0.5,interface);
+			break;
+		case '6':
+			set_volume(0.6,interface);
+			break;
+		case '7':
+			set_volume(0.7,interface);
+			break;
+		case '8':
+			set_volume(0.8,interface);
+			break;
+		case '9':
+			set_volume(0.9,interface);
+			break;
+		case '0':
+			set_volume(1.0,interface);
+			break;
 		case 'h':
-			change_volume(-0.05, interface);
+			add_volume(-0.05, interface);
 			break;
 		case 'H':
-			change_volume(-0.15, interface);
+			add_volume(-0.15, interface);
 			break;
 		case 'l':
-			change_volume(0.05, interface);
+			add_volume(0.05, interface);
 			break;
 		case 'L':
-			change_volume(0.15, interface);
+			add_volume(0.15, interface);
 			break;
 		case 'j':
 			selectNext(interface);
