@@ -195,6 +195,11 @@ void drawEntries(PAInterface *interface)
 		if (isSelectedEntry)
 			attron(A_STANDOUT);
 
+		if (appname.length() > COLS * 0.4)
+		{
+			appname = appname.substr(0, COLS * 0.4 - 2);
+			appname.append("..");
+		}
 		mvprintw(y++, 1, appname.c_str());
 		if (isSelectedEntry)
 			attroff(A_STANDOUT);
@@ -227,15 +232,15 @@ void drawEntries(PAInterface *interface)
 		}
 		if (space < sinkname.size())
 		{
-			sinkname = sinkname.substr(0, space - 3);
-			sinkname.append("...");
+			sinkname = sinkname.substr(0, space - 2);
+			sinkname.append("..");
 			space = 0;
 		}
 		else
 		{
 			space -= sinkname.size();
 		}
-		mvprintw(py, px + space, sinkname.c_str());
+		mvprintw(py, px + space+1, sinkname.c_str());
 
 		y += 1;
 	}
