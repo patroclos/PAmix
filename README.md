@@ -4,12 +4,13 @@
 
 # Keybindings #
 
-| Effect                     | Key |
+| Action                     | Key |
 |----------------------------|-----|
 | Playback tab               | F1  |
 | Recording Tab              | F2  |
 | Output Devices             | F3  |
 | Input Devices              | F4  |
+| Set volume to percentage   | 0-9 |
 | Decrease Volume            | h   |
 | Increase Volume            | l   |
 | Select Next                | j   |
