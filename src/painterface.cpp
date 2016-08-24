@@ -37,6 +37,22 @@ void PAInterface::cb_success(pa_context *context, int success, void *interface)
 	PAInterface::signal_mainloop((PAInterface *)interface);
 }
 
+void PAInterface::_updatethread(pai_subscription_type_t paisubtype, pa_subscription_event_type_t type, PAInterface *interface)
+{
+	if (paisubtype == PAI_SUBSCRIPTION_MASK_INFO)
+	{
+		if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SINK, type))
+			PAInterface::_updateSinks(interface);
+		else if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SOURCE, type))
+			PAInterface::_updateSources(interface);
+		else if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SINK_INPUT, type))
+			PAInterface::_updateInputs(interface);
+		else if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT, type))
+			PAInterface::_updateOutputs(interface);
+	}
+	interface->notifySubscription(paisubtype);
+}
+
 void PAInterface::cb_subscription_event(pa_context *context, pa_subscription_event_type_t type, uint32_t idx, void *interface)
 {
 	pai_subscription_type_t paisubtype = 0x0U;
@@ -49,20 +65,7 @@ void PAInterface::cb_subscription_event(pa_context *context, pa_subscription_eve
 		paisubtype = PAI_SUBSCRIPTION_MASK_OTHER;
 	}
 
-	std::thread updthread([=] {
-		if (paisubtype == PAI_SUBSCRIPTION_MASK_INFO)
-		{
-			if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SINK, type))
-				PAInterface::_updateSinks((PAInterface *)interface);
-			else if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SOURCE, type))
-				PAInterface::_updateSources((PAInterface *)interface);
-			else if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SINK_INPUT, type))
-				PAInterface::_updateInputs((PAInterface *)interface);
-			else if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT, type))
-				PAInterface::_updateOutputs((PAInterface *)interface);
-		}
-		((PAInterface *)interface)->notifySubscription(paisubtype);
-	});
+	std::thread updthread(_updatethread, paisubtype, type, (PAInterface *)interface);
 	updthread.detach();
 }
 

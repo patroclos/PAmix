@@ -61,6 +61,8 @@ private:
 	static void _updateInputs(PAInterface *interface);
 	static void _updateOutputs(PAInterface *interface);
 
+	static void _updatethread(pai_subscription_type_t paisubtype, pa_subscription_event_type_t type, PAInterface *interface);
+
 	//member methods
 
 	void updateSinks() { _updateSinks(this); }
