@@ -150,10 +150,10 @@ void drawEntries(PAInterface *interface)
 
 	for (it = std::next(entryMap->begin(), skipEntries), index = skipEntries; it != entryMap->end(); it++, index++)
 	{
-		std::string &appname = it->second->m_Name;
-		pa_volume_t  avgvol  = pa_cvolume_avg(&it->second->m_PAVolume);
-		double       dB      = pa_sw_volume_to_dB(avgvol);
-		double       vol     = avgvol / (double)PA_VOLUME_NORM;
+		std::string appname = it->second ? it->second->m_Name : "";
+		pa_volume_t avgvol  = pa_cvolume_avg(&it->second->m_PAVolume);
+		double      dB      = pa_sw_volume_to_dB(avgvol);
+		double      vol     = avgvol / (double)PA_VOLUME_NORM;
 
 		bool    isSelectedEntry = index == selectedEntry;
 		uint8_t numChannels     = it->second->m_Lock ? 1 : it->second->m_PAVolume.channels;
@@ -216,16 +216,20 @@ void drawEntries(PAInterface *interface)
 		switch (entryType)
 		{
 		case ENTRY_SINK:
-			sinkname = ((SinkEntry *)it->second.get())->getPort();
+			if (it->second)
+				sinkname = ((SinkEntry *)it->second.get())->getPort();
 			break;
 		case ENTRY_SOURCE:
-			sinkname = ((SourceEntry *)it->second.get())->getPort();
+			if (it->second)
+				sinkname = ((SourceEntry *)it->second.get())->getPort();
 			break;
 		case ENTRY_SINKINPUT:
-			sinkname = interface->getSinks()[((SinkInputEntry *)it->second.get())->m_Device]->m_Name;
+			if (it->second && interface->getSinks()[((SinkInputEntry *)it->second.get())->m_Device])
+				sinkname = interface->getSinks()[((SinkInputEntry *)it->second.get())->m_Device]->m_Name;
 			break;
 		case ENTRY_SOURCEOUTPUT:
-			sinkname = interface->getSources()[((SourceOutputEntry *)it->second.get())->m_Device]->m_Name;
+			if (it->second && interface->getSources()[((SourceOutputEntry *)it->second.get())->m_Device])
+				sinkname = interface->getSources()[((SourceOutputEntry *)it->second.get())->m_Device]->m_Name;
 			break;
 		default:
 			break;

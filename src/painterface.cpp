@@ -74,7 +74,7 @@ void PAInterface::cb_sink_info(pa_context *context, const pa_sink_info *info, in
 	if (!eol)
 	{
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_Sinks;
-		if (!map.count(info->index))
+		if (!map.count(info->index) || !map[info->index])
 			map[info->index] = std::unique_ptr<Entry>(new SinkEntry());
 		map[info->index]->update(info);
 	}
@@ -87,7 +87,7 @@ void PAInterface::cb_source_info(pa_context *context, const pa_source_info *info
 	if (!eol)
 	{
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_Sources;
-		if (!map.count(info->index))
+		if (!map.count(info->index) || !map[info->index])
 			map[info->index] = std::unique_ptr<Entry>(new SourceEntry());
 		map[info->index]->update(info);
 	}
@@ -100,7 +100,7 @@ void PAInterface::cb_sink_input_info(pa_context *context, const pa_sink_input_in
 	if (!eol)
 	{
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_SinkInputs;
-		if (!map.count(info->index))
+		if (!map.count(info->index) || !map[info->index])
 			map[info->index] = std::unique_ptr<Entry>(new SinkInputEntry());
 		map[info->index]->update(info);
 	}
@@ -119,7 +119,7 @@ void PAInterface::cb_source_output_info(pa_context *context, const pa_source_out
 				return;
 		}
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_SourceOutputs;
-		if (!map.count(info->index))
+		if (!map.count(info->index) || !map[info->index])
 			map[info->index] = std::unique_ptr<Entry>(new SourceOutputEntry());
 		map[info->index]->update(info);
 	}
