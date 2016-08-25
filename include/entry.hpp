@@ -29,14 +29,11 @@ struct Entry
 	bool           m_Lock = true;
 	bool           m_Kill;
 
+	~Entry();
 	// general methods
 	virtual void setVolume(PAInterface *interface, const int channel, const pa_volume_t volume) = 0;
 	virtual void setMute(PAInterface *interface, bool mute) = 0;
-	virtual void addVolume(PAInterface *interface, const int channel, const double deltaPct)
-	{
-		volume_pct_delta(&m_PAVolume, channel, deltaPct);
-		setVolume(interface, channel, m_Lock ? pa_cvolume_avg(&m_PAVolume) : m_PAVolume.values[channel]);
-	}
+	virtual void addVolume(PAInterface *interface, const int channel, const double deltaPct);
 	virtual void cycleSwitch(PAInterface *interface, bool increment) = 0;
 
 	virtual void update(const pa_sink_info *info) {}

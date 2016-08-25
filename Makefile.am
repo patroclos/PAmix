@@ -8,6 +8,7 @@ pamix_SOURCES = \
 		src/pamix.cpp\
 		src/sourceoutputentry.cpp\
 		src/sinkinputentry.cpp\
+		src/entry.cpp\
 		src/painterface.cpp
 
 man1_MANS = man/pamix.1
