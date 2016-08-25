@@ -3,13 +3,13 @@
 void SourceOutputEntry::update(const pa_source_output_info *info)
 {
 	// general vars
-	m_Name          = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME);
-	m_Index         = info->index;
-	m_Mute          = info->mute;
+	m_Name         = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME);
+	m_Index        = info->index;
+	m_Mute         = info->mute;
 	m_MonitorIndex = info->source;
-	m_PAVolume      = info->volume;
-	m_PAChannelMap  = info->channel_map;
-	m_Kill          = false;
+	m_PAVolume     = info->volume;
+	m_PAChannelMap = info->channel_map;
+	m_Kill         = false;
 
 	// stream vars
 	m_Device = info->source;
