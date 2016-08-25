@@ -1,4 +1,3 @@
-#include <iostream>
 #include <painterface.hpp>
 
 mainloop_lockguard::mainloop_lockguard(pa_threaded_mainloop *m)
@@ -15,11 +14,6 @@ mainloop_lockguard::~mainloop_lockguard()
 PAInterface::PAInterface(const char *context_name)
     : m_ContextName(context_name), m_Mainloop(0), m_MainloopApi(0), m_Context(0)
 {
-}
-
-PAInterface::~PAInterface()
-{
-	disconnect();
 }
 
 void PAInterface::signal_mainloop(void *interface)
@@ -129,11 +123,15 @@ void PAInterface::cb_source_output_info(pa_context *context, const pa_source_out
 
 void PAInterface::cb_read(pa_stream *stream, size_t nbytes, void *iepair)
 {
-	interface_entry_pair *pair = reinterpret_cast<interface_entry_pair *>(iepair);
+	std::pair<PAInterface *, Entry *> *pair = (std::pair<PAInterface *, Entry *> *)(iepair);
+
+	if (!pair->second)
+		return;
 
 	const void *data;
-	double      v;
-	pa_stream_peek(stream, &data, &nbytes);
+	float       v;
+	if (pa_stream_peek(stream, &data, &nbytes) < 0)
+		return;
 
 	if (!data)
 	{
@@ -152,8 +150,8 @@ void PAInterface::cb_read(pa_stream *stream, size_t nbytes, void *iepair)
 	else if (v > 1)
 		v = 1;
 
-	pair->e->m_Peak = v;
-	pair->i->notifySubscription(PAI_SUBSCRIPTION_MASK_PEAK);
+	pair->second->m_Peak = v;
+	pair->first->notifySubscription(PAI_SUBSCRIPTION_MASK_PEAK);
 }
 
 void PAInterface::cb_stream_state(pa_stream *stream, void *entry)
@@ -200,7 +198,18 @@ void __updateEntries(PAInterface *interface, std::map<uint32_t, std::unique_ptr<
 	for (iter_entry_t it = map.begin(); it != map.end();)
 	{
 		if (it->second->m_Kill)
+		{
+			for (std::vector<std::unique_ptr<std::pair<PAInterface *, Entry *>>>::iterator pairit = interface->m_IEPairs.begin(); pairit != interface->m_IEPairs.end();)
+			{
+				if ((*pairit)->second == it->second.get())
+				{
+					(*pairit)->second = nullptr;
+					break;
+				}
+				pairit++;
+			}
 			it = map.erase(it);
+		}
 		else
 		{
 			if (!it->second->m_Monitor)
@@ -280,17 +289,6 @@ bool PAInterface::connect()
 	return true;
 }
 
-void PAInterface::disconnect()
-{
-	if (m_Context)
-		pa_context_disconnect(m_Context);
-	if (m_Mainloop)
-	{
-		pa_threaded_mainloop_stop(m_Mainloop);
-		pa_threaded_mainloop_free(m_Mainloop);
-	}
-}
-
 bool PAInterface::isConnected()
 {
 	return m_Context ? pa_context_get_state(m_Context) == PA_CONTEXT_READY : false;
@@ -320,10 +318,10 @@ pa_stream *_createMonitor(PAInterface *interface, uint32_t source, Entry *entry,
 	if (stream != (uint32_t)-1)
 		pa_stream_set_monitor_stream(s, stream);
 
-	interface_entry_pair *pair = new interface_entry_pair();
-	pair->i                    = interface;
-	pair->e                    = entry;
-	interface->m_IEPairs.push_back(pair);
+	std::pair<PAInterface *, Entry *> *pair = new std::pair<PAInterface *, Entry *>();
+	pair->first  = interface;
+	pair->second = entry;
+	interface->m_IEPairs.push_back(std::unique_ptr<std::pair<PAInterface *, Entry *>>(pair));
 
 	pa_stream_set_read_callback(s, &PAInterface::cb_read, pair);
 	pa_stream_set_state_callback(s, &PAInterface::cb_stream_state, entry);

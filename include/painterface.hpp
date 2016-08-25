@@ -20,12 +20,6 @@ struct mainloop_lockguard
 class PAInterface;
 struct Entry;
 
-struct interface_entry_pair
-{
-	PAInterface *i;
-	Entry *      e;
-};
-
 //define subscription masks
 #define PAI_SUBSCRIPTION_MASK_PEAK 0x1U
 #define PAI_SUBSCRIPTION_MASK_INFO 0x2U
@@ -74,13 +68,11 @@ private:
 
 public:
 	PAInterface(const char *context_name);
-	~PAInterface();
 
 	inline pa_threaded_mainloop *getPAMainloop() { return m_Mainloop; }
 	inline pa_context *          getPAContext() { return m_Context; }
 
 	bool connect();
-	void disconnect();
 	bool isConnected();
 
 	void subscribe(pai_subscription_cb callback);
@@ -90,7 +82,7 @@ public:
 	std::map<uint32_t, std::unique_ptr<Entry>> &getSinkInputs() { return m_SinkInputs; }
 	std::map<uint32_t, std::unique_ptr<Entry>> &getSourceOutputs() { return m_SourceOutputs; }
 
-	std::vector<interface_entry_pair *> m_IEPairs;
+	std::vector<std::unique_ptr<std::pair<PAInterface *, Entry *>>> m_IEPairs;
 	void createMonitorStreamForEntry(Entry *entry, int type);
 
 	void modifyLock();
