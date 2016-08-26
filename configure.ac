@@ -10,7 +10,7 @@ AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 AC_LANG([C++])
-AX_CXX_COMPILE_STDCXX_11(,[mandatory])
+AX_CXX_COMPILE_STDCXX_11()
 
 # Checks for programs.
 AC_PROG_CXX
