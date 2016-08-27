@@ -24,6 +24,9 @@
 
 
 # Dependencies: #
+## Build ##
+	- autoconf and autoconf-archive
+## Runtime ##
 	- PulseAudio
 	- Ncurses
 
