@@ -261,7 +261,7 @@ bool PAInterface::connect()
 
 	if (pa_threaded_mainloop_start(m_Mainloop))
 		return false;
-	if (pa_context_connect(m_Context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL))
+	if (pa_context_connect(m_Context, NULL, PA_CONTEXT_NOFLAGS, NULL))
 		return false;
 
 	for (;;)
