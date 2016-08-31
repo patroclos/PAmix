@@ -436,6 +436,7 @@ void loadConfiguration()
 		if (Configuration::loadFile(&configuration, path.substr(0, cpos)))
 			return;
 		path = path.substr(cpos + 1, path.length() - cpos - 1);
+		cpos = path.find(':');
 	}
 	if (Configuration::loadFile(&configuration, path))
 		return;

@@ -149,6 +149,9 @@ bool Configuration::loadFile(Configuration *config, const std::string &path)
 	fseek(file, 0, SEEK_END);
 	unsigned long length = ftell(file);
 
+	if (length == LLONG_MAX)
+		return false;
+
 	char *data = new char[length + 1];
 	std::memset(data, 0, length + 1);
 	fseek(file, 0, SEEK_SET);
