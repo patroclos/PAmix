@@ -428,7 +428,8 @@ void loadConfiguration()
 
 	char *xdg_data_dirs = getenv("XDG_DATA_DIRS");
 
-	path        = xdg_data_dirs ? xdg_data_dirs : "/usr/share";
+	path = xdg_data_dirs ? xdg_data_dirs : "/usr/share";
+	path += "/pamix.conf";
 	size_t cpos = path.find(':');
 	while (cpos != std::string::npos)
 	{
