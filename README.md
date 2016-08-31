@@ -7,7 +7,7 @@ Configure pamix and set keybindings using pamix.conf (see manpage and pamix.conf
 
 # Default Keybindings #
 
-(arrow keys are also supported instead of hjkl)
+(arrow keys are also supported instead of hjkl)  
 | Action                     | Key |
 |----------------------------|-----|
 | Playback tab               | F1  |
