@@ -2,8 +2,12 @@
 
 ![alt tag](http://i.imgur.com/NuzrAXZ.gif)
 
-# Keybindings #
+# Configuration #
+Configure pamix and set keybindings using pamix.conf (see manpage and pamix.conf for details)
 
+# Default Keybindings #
+
+(arrow keys are also supported instead of hjkl)
 | Action                     | Key |
 |----------------------------|-----|
 | Playback tab               | F1  |
