@@ -12,7 +12,7 @@ mainloop_lockguard::~mainloop_lockguard()
 }
 
 PAInterface::PAInterface(const char *context_name)
-    : m_ContextName(context_name), m_Mainloop(0), m_MainloopApi(0), m_Context(0)
+    : m_ContextName(context_name), m_Mainloop(0), m_MainloopApi(0), m_Context(0), m_Autospawn(false)
 {
 }
 
@@ -261,7 +261,8 @@ bool PAInterface::connect()
 
 	if (pa_threaded_mainloop_start(m_Mainloop))
 		return false;
-	if (pa_context_connect(m_Context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL))
+	pa_context_flags flags = m_Autospawn ? PA_CONTEXT_NOFLAGS : PA_CONTEXT_NOAUTOSPAWN;
+	if (pa_context_connect(m_Context, NULL, flags, NULL))
 		return false;
 
 	for (;;)

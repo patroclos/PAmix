@@ -1,46 +1,18 @@
+#include <pamix.hpp>
+
 #include <condition_variable>
+#include <configuration.hpp>
 #include <locale.h>
 #include <mutex>
 #include <ncurses.h>
-#include <painterface.hpp>
 #include <queue>
 #include <signal.h>
 #include <string>
 #include <thread>
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-struct UpdateData
-{
-	bool redrawAll;
-	UpdateData() = default;
-	UpdateData(bool redrawAll) { this->redrawAll = redrawAll; }
-};
-
-#define DECAY_STEP 0.04
-#define MAX_VOL 1.5
-
-#ifdef FEAT_UNICODE
-#define SYM_VOLBAR L'\u25ae' //▮
-#define SYM_ARROW "\u25b6 " //▶
-#define SYM_MUTE "🔇"
-#define SYM_LOCK "🔒"
-#define SYM_SPACE L' '
-#define FEAT_UNICODE_STRING std::wstring
-#define FEAT_UNICODE_MVADDNSTR(y, x, str, n) mvaddnwstr(y, x, str, n);
-#else
-#define SYM_VOLBAR '|'
-#define SYM_ARROW "> "
-#define SYM_MUTE "M"
-#define SYM_LOCK "L"
-#define SYM_SPACE ' '
-#define FEAT_UNICODE_STRING std::string
-#define FEAT_UNICODE_MVADDNSTR(y, x, str, n) mvaddnstr(y, x, str, n);
-#endif
-
 // GLOBAL VARIABLES
+Configuration configuration;
+
 bool     running         = true;
 unsigned selectedEntry   = 0;
 uint8_t  selectedChannel = 0;
@@ -62,6 +34,12 @@ std::mutex              updMutex;
 std::condition_variable cv;
 
 std::queue<UpdateData> updateDataQ;
+
+void quit()
+{
+	running = false;
+	signal_update(false);
+}
 
 void signal_update(bool all)
 {
@@ -280,28 +258,34 @@ inline iter_entry_t get_selected_entry_iter(PAInterface *interface)
 		return entryMap->end();
 }
 
-inline void set_volume(double pct, PAInterface *interface)
+void set_volume(PAInterface *interface, double pct)
 {
 	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
 		it->second->setVolume(interface, it->second->m_Lock ? -1 : selectedChannel, PA_VOLUME_NORM * pct);
 }
 
-inline void add_volume(double pctDelta, PAInterface *interface)
+void add_volume(PAInterface *interface, double pct)
 {
 	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
-		it->second->addVolume(interface, it->second->m_Lock ? -1 : selectedChannel, pctDelta);
+		it->second->addVolume(interface, it->second->m_Lock ? -1 : selectedChannel, pct);
 }
 
-inline void cycleSwitch(bool increment, PAInterface *interface)
+void cycle_switch(PAInterface *interface, bool increment)
 {
 	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
 		it->second->cycleSwitch(interface, increment);
 }
 
-inline void mute_entry(PAInterface *interface)
+void set_mute(PAInterface *interface, bool mute)
+{
+	iter_entry_t it = get_selected_entry_iter(interface);
+	if (it != entryMap->end())
+		it->second->setMute(interface, mute);
+}
+void toggle_mute(PAInterface *interface)
 {
 	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
@@ -335,7 +319,7 @@ void adjustDisplay()
 	}
 }
 
-void selectNext(PAInterface *interface, bool channelLevel = true)
+void select_next(PAInterface *interface, bool channelLevel)
 {
 	if (selectedEntry < entryMap->size())
 	{
@@ -357,7 +341,7 @@ void selectNext(PAInterface *interface, bool channelLevel = true)
 	adjustDisplay();
 }
 
-void selectPrev(PAInterface *interface, bool channelLevel = true)
+void select_previous(PAInterface *interface, bool channelLevel)
 {
 	if (selectedEntry < entryMap->size())
 	{
@@ -380,7 +364,13 @@ void selectPrev(PAInterface *interface, bool channelLevel = true)
 	adjustDisplay();
 }
 
-void toggleChannelLock(PAInterface *interface)
+void set_lock(PAInterface *interface, bool lock)
+{
+	iter_entry_t it = get_selected_entry_iter(interface);
+	if (it != entryMap->end())
+		it->second->m_Lock = lock;
+}
+void toggle_lock(PAInterface *interface)
 {
 	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
@@ -392,102 +382,8 @@ void inputThread(PAInterface *interface)
 	while (running)
 	{
 		int ch = getch();
-		switch (ch)
-		{
-		case KEY_F(1):
-			selectEntries(interface, ENTRY_SINKINPUT);
-			signal_update(true);
-			break;
-		case KEY_F(2):
-			selectEntries(interface, ENTRY_SOURCEOUTPUT);
-			signal_update(true);
-			break;
-		case KEY_F(3):
-			selectEntries(interface, ENTRY_SINK);
-			signal_update(true);
-			break;
-		case KEY_F(4):
-			selectEntries(interface, ENTRY_SOURCE);
-			signal_update(true);
-			break;
-		case '1':
-			set_volume(0.1, interface);
-			break;
-		case '2':
-			set_volume(0.2, interface);
-			break;
-		case '3':
-			set_volume(0.3, interface);
-			break;
-		case '4':
-			set_volume(0.4, interface);
-			break;
-		case '5':
-			set_volume(0.5, interface);
-			break;
-		case '6':
-			set_volume(0.6, interface);
-			break;
-		case '7':
-			set_volume(0.7, interface);
-			break;
-		case '8':
-			set_volume(0.8, interface);
-			break;
-		case '9':
-			set_volume(0.9, interface);
-			break;
-		case '0':
-			set_volume(1.0, interface);
-			break;
-		case 'h':
-			add_volume(-0.05, interface);
-			break;
-		case 'H':
-			add_volume(-0.15, interface);
-			break;
-		case 'l':
-			add_volume(0.05, interface);
-			break;
-		case 'L':
-			add_volume(0.15, interface);
-			break;
-		case 'j':
-			selectNext(interface);
-			signal_update(true);
-			break;
-		case 'J':
-			selectNext(interface, false);
-			signal_update(true);
-			break;
-		case 'k':
-			selectPrev(interface);
-			signal_update(true);
-			break;
-		case 'K':
-			selectPrev(interface, false);
-			signal_update(true);
-			break;
-		case 's':
-			cycleSwitch(true, interface);
-			break;
-		case 'S':
-			cycleSwitch(false, interface);
-			break;
-		case 'm':
-			mute_entry(interface);
-			break;
-		case 'c':
-			toggleChannelLock(interface);
-			signal_update(true);
-			break;
-		case 'q':
-			running = false;
-			signal_update(false);
-			break;
-		default:
-			break;
-		}
+		configuration.pressKey(ch);
+		continue;
 	}
 }
 
@@ -517,13 +413,79 @@ void sig_handle(int sig)
 	endwin();
 }
 
+void loadConfiguration()
+{
+	char *home            = getenv("HOME");
+	char *xdg_config_home = getenv("XDG_CONFIG_HOME");
+
+	std::string path;
+
+	path = xdg_config_home ? xdg_config_home : std::string(home) += "/.config";
+	path += "/pamix.conf";
+
+	if (Configuration::loadFile(&configuration, path))
+		return;
+
+	char *xdg_data_dirs = getenv("XDG_DATA_DIRS");
+
+	path        = xdg_data_dirs ? xdg_data_dirs : "/usr/share";
+	size_t cpos = path.find(':');
+	while (cpos != std::string::npos)
+	{
+		if (Configuration::loadFile(&configuration, path.substr(0, cpos)))
+			return;
+		path = path.substr(cpos + 1, path.length() - cpos - 1);
+	}
+	if (Configuration::loadFile(&configuration, path))
+		return;
+
+	// if config file cant be loaded, use default bindings
+	// TODO read $PREFIX/share/pamix.conf and only fall back to hardcoded config when it cant be loaded
+	configuration.bind("q", "quit");
+	configuration.bind("KEY_F(1)", "select-tab", "2");
+	configuration.bind("KEY_F(2)", "select-tab", "3");
+	configuration.bind("KEY_F(3)", "select-tab", "0");
+	configuration.bind("KEY_F(4)", "select-tab", "1");
+
+	configuration.bind("j", "select-next", "channel");
+	configuration.bind("KEY_DOWN", "select-next", "channel");
+	configuration.bind("J", "select-next");
+	configuration.bind("k", "select-prev", "channel");
+	configuration.bind("KEY_UP", "select-prev", "channel");
+	configuration.bind("K", "select-prev");
+
+	configuration.bind("h", "add-volume", "-0.05");
+	configuration.bind("KEY_LEFT", "add-volume", "-0.05");
+	configuration.bind("l", "add-volume", "0.05");
+	configuration.bind("KEY_RIGHT", "add-volume", "0.05");
+
+	configuration.bind("s", "cycle-next");
+	configuration.bind("S", "cycle-prev");
+	configuration.bind("c", "toggle-lock");
+	configuration.bind("m", "toggle-mute");
+
+	configuration.bind("1", "set-volume", "0.1");
+	configuration.bind("2", "set-volume", "0.2");
+	configuration.bind("3", "set-volume", "0.3");
+	configuration.bind("4", "set-volume", "0.4");
+	configuration.bind("5", "set-volume", "0.5");
+	configuration.bind("6", "set-volume", "0.6");
+	configuration.bind("7", "set-volume", "0.7");
+	configuration.bind("8", "set-volume", "0.8");
+	configuration.bind("9", "set-volume", "0.9");
+	configuration.bind("0", "set-volume", "1.0");
+}
+
 int main(int argc, char **argv)
 {
+	loadConfiguration();
+
 	setlocale(LC_ALL, "");
 	initscr();
 	init_colors();
 	curs_set(0);
 	keypad(stdscr, true);
+	meta(stdscr, true);
 	noecho();
 
 	signal(SIGABRT, sig_handle);
@@ -531,6 +493,9 @@ int main(int argc, char **argv)
 	signal(SIGWINCH, sig_handle_resize);
 
 	PAInterface pai("pamix");
+	if (configuration.has(CONFIGURATION_AUTOSPAWN_PULSE))
+		pai.setAutospawn(configuration.getBool(CONFIGURATION_AUTOSPAWN_PULSE));
+
 	selectEntries(&pai, ENTRY_SINKINPUT);
 	pai.subscribe(pai_subscription);
 	if (!pai.connect())
@@ -539,6 +504,8 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Failed to connect to PulseAudio.\n");
 		exit(1);
 	}
+
+	pamix_set_interface(&pai);
 
 	drawEntries(&pai);
 	std::thread inputT(inputThread, &pai);

@@ -33,6 +33,8 @@ typedef std::map<uint32_t, std::unique_ptr<Entry>>::iterator iter_entry_t;
 class PAInterface
 {
 private:
+	bool m_Autospawn;
+
 	const char *          m_ContextName;
 	pa_threaded_mainloop *m_Mainloop;
 	pa_mainloop_api *     m_MainloopApi;
@@ -74,6 +76,9 @@ public:
 
 	bool connect();
 	bool isConnected();
+
+	void setAutospawn(bool as) { m_Autospawn = as; }
+	bool                   getAutospawn() { return m_Autospawn; }
 
 	void subscribe(pai_subscription_cb callback);
 

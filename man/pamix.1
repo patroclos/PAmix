@@ -7,24 +7,41 @@ pamix
 .SH DESCRIPTION
 This is a pavucontrol inspired ncurses based pulseaudio mixer for the commandline
 
-.SH KEY BINDINGS
+.SH CONFIGURATION
+pamix looks for a configuration file in $XDG_CONFIG_HOME (or $HOME/.config if it's undefined) and $XDG_DATA_DIRS (or /usr/share if it's undefined) called pamix.conf.
+.br
+If no config file is found pamix will use its default configuration (see section DEFAULT CONFIGURATION)
+.br
+The default configuration is located at $XDG_DATA_DIRS/pamix.conf.
+
+.SH DEFAULT CONFIGURATION
+pamix does not autospawn pulseaudio by default
+
+Keybindings:
+.br
 F1      show Playback tab
-
+.br
 F2      show Recording tab
-
+.br
 F3      show Output devices tab
-
+.br
 F4      show Input devices tab
-
+.br
 0-9     set volume to percentage (10%-100%)
-
-j/J     select next channel/entry
-
-k/K     select previous channel/entry
-
-h/l     decrease/increase volume
-
+.br
+j/down  select next channel
+.br
+J       select next entry
+.br
+k/up    select previous channel
+.br
+K       select previous entry
+.br
+h/left  decrease volume
+.br
+h/right increase volume
+.br
 c       un/lock channels
-
+.br
 s/S     select next/previous device/port
 

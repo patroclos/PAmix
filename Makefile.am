@@ -9,6 +9,10 @@ pamix_SOURCES = \
 		src/sourceoutputentry.cpp\
 		src/sinkinputentry.cpp\
 		src/entry.cpp\
+		src/configuration.cpp\
+		src/pamix_functions.cpp\
 		src/painterface.cpp
 
 man1_MANS = man/pamix.1
+
+dist_data_DATA = pamix.conf
