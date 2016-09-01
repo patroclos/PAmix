@@ -70,6 +70,7 @@ private:
 
 public:
 	PAInterface(const char *context_name);
+	~PAInterface();
 
 	inline pa_threaded_mainloop *getPAMainloop() { return m_Mainloop; }
 	inline pa_context *          getPAContext() { return m_Context; }
@@ -96,6 +97,7 @@ public:
 	//PulseAudio API Callbacks
 	//userptr points to current PAInterface instance
 	static void cb_context_state(pa_context *context, void *interface);
+	static void cb_context_drain_complete(pa_context *context, void *null);
 	static void cb_success(pa_context *context, int success, void *interface);
 	static void cb_subscription_event(pa_context *context, pa_subscription_event_type_t type, uint32_t idx, void *interface);
 

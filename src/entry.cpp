@@ -2,10 +2,14 @@
 
 Entry::~Entry()
 {
-	if (m_Monitor && PA_STREAM_IS_GOOD(pa_stream_get_state(m_Monitor)))
+	if (m_Monitor)
 	{
-		pa_stream_disconnect(m_Monitor);
+		if (PA_STREAM_IS_GOOD(pa_stream_get_state(m_Monitor)))
+		{
+			pa_stream_disconnect(m_Monitor);
+		}
 		pa_stream_unref(m_Monitor);
+		m_Monitor = nullptr;
 	}
 }
 

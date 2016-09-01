@@ -12,8 +12,26 @@ mainloop_lockguard::~mainloop_lockguard()
 }
 
 PAInterface::PAInterface(const char *context_name)
-    : m_ContextName(context_name), m_Mainloop(0), m_MainloopApi(0), m_Context(0), m_Autospawn(false)
+    : m_Autospawn(false), m_ContextName(context_name), m_Mainloop(0), m_MainloopApi(0), m_Context()
 {
+}
+
+PAInterface::~PAInterface()
+{
+	m_Sinks.clear();
+	m_Sources.clear();
+	m_SinkInputs.clear();
+	m_SourceOutputs.clear();
+	if (m_Context)
+	{
+		pa_operation *o;
+		if (!(o = pa_context_drain(m_Context, &PAInterface::cb_context_drain_complete, nullptr)))
+			pa_context_disconnect(m_Context);
+		else
+		{
+			pa_operation_unref(o);
+		}
+	}
 }
 
 void PAInterface::signal_mainloop(void *interface)
@@ -23,7 +41,15 @@ void PAInterface::signal_mainloop(void *interface)
 
 void PAInterface::cb_context_state(pa_context *context, void *interface)
 {
-	PAInterface::signal_mainloop((PAInterface *)interface);
+	if (PA_CONTEXT_IS_GOOD(pa_context_get_state(context)))
+		PAInterface::signal_mainloop((PAInterface *)interface);
+	else
+		((PAInterface *)interface)->m_Context = nullptr;
+}
+
+void PAInterface::cb_context_drain_complete(pa_context *context, void *null)
+{
+	pa_context_disconnect(context);
 }
 
 void PAInterface::cb_success(pa_context *context, int success, void *interface)
@@ -125,7 +151,7 @@ void PAInterface::cb_read(pa_stream *stream, size_t nbytes, void *iepair)
 {
 	std::pair<PAInterface *, Entry *> *pair = (std::pair<PAInterface *, Entry *> *)(iepair);
 
-	if (!pair->second)
+	if (!pair->second || !pair->first->m_Context)
 		return;
 
 	const void *data;
