@@ -35,7 +35,7 @@
 
 
 
-## Configuration ##
+## Autoconf Configuration ##
 Generate configure script by running `autoreconf -i` and then run `./configure` with your preferred options
 
 ### Options ###
