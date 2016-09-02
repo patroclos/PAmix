@@ -221,6 +221,8 @@ bool Configuration::loadFile(Configuration *config, const std::string &path)
 		}
 	}
 
+	delete[] data;
+
 	return true;
 }
 
