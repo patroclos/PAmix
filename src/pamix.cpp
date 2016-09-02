@@ -442,7 +442,6 @@ void loadConfiguration()
 		return;
 
 	// if config file cant be loaded, use default bindings
-	// TODO read $PREFIX/share/pamix.conf and only fall back to hardcoded config when it cant be loaded
 	configuration.bind("q", "quit");
 	configuration.bind("KEY_F(1)", "select-tab", "2");
 	configuration.bind("KEY_F(2)", "select-tab", "3");
