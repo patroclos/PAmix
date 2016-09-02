@@ -223,6 +223,11 @@ void __updateEntries(PAInterface *interface, std::map<uint32_t, std::unique_ptr<
 	interface->modifyLock();
 	for (iter_entry_t it = map.begin(); it != map.end();)
 	{
+		if (!it->second)
+		{
+			it = map.erase(it);
+			continue;
+		}
 		if (it->second->m_Kill)
 		{
 			for (std::vector<std::unique_ptr<std::pair<PAInterface *, Entry *>>>::iterator pairit = interface->m_IEPairs.begin(); pairit != interface->m_IEPairs.end();)
