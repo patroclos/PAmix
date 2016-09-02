@@ -372,7 +372,9 @@ void PAInterface::createMonitorStreamForEntry(Entry *entry, int type)
 
 	if (type == ENTRY_SINKINPUT)
 	{
-		entry->m_Monitor = _createMonitor(this, m_Sinks[((SinkInputEntry *)(entry))->m_Device]->m_Index, entry, entry->m_Index);
+		uint32_t dev = ((SinkInputEntry *)entry)->m_Device;
+		if (m_Sinks.count(dev))
+			entry->m_Monitor = _createMonitor(this, m_Sinks[dev]->m_Index, entry, entry->m_Index);
 	}
 	else
 	{
