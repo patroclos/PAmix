@@ -193,8 +193,11 @@ void __updateEntries(PAInterface *interface, std::map<uint32_t, std::unique_ptr<
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 
-	for (iter_entry_t it = map.begin(); it != map.end(); it++)
-		it->second->m_Kill = true;
+	for (iter_entry_t it = map.begin(); it != map.end();)
+		if (it->second)
+			it++->second->m_Kill = true;
+		else
+			it = map.erase(it);
 
 	pa_operation *infooper = nullptr;
 	switch (entrytype)
@@ -223,11 +226,6 @@ void __updateEntries(PAInterface *interface, std::map<uint32_t, std::unique_ptr<
 	interface->modifyLock();
 	for (iter_entry_t it = map.begin(); it != map.end();)
 	{
-		if (!it->second)
-		{
-			it = map.erase(it);
-			continue;
-		}
 		if (it->second->m_Kill)
 		{
 			for (std::vector<std::unique_ptr<std::pair<PAInterface *, Entry *>>>::iterator pairit = interface->m_IEPairs.begin(); pairit != interface->m_IEPairs.end();)
