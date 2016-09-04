@@ -15,7 +15,7 @@ void SourceOutputEntry::update(const pa_source_output_info *info)
 	m_Device = info->source;
 }
 
-void SourceOutputEntry::setVolume(PAInterface *interface, const int channel, const pa_volume_t volume)
+void SourceOutputEntry::setVolume(const int channel, const pa_volume_t volume)
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 
@@ -31,7 +31,7 @@ void SourceOutputEntry::setVolume(PAInterface *interface, const int channel, con
 	pa_operation_unref(op);
 }
 
-void SourceOutputEntry::setMute(PAInterface *interface, bool mute)
+void SourceOutputEntry::setMute(bool mute)
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 	pa_operation *     op = pa_context_set_source_output_mute(interface->getPAContext(), m_Index, mute, &PAInterface::cb_success, interface);
@@ -40,7 +40,7 @@ void SourceOutputEntry::setMute(PAInterface *interface, bool mute)
 	pa_operation_unref(op);
 }
 
-void SourceOutputEntry::cycleSwitch(PAInterface *interface, bool increment)
+void SourceOutputEntry::cycleSwitch(bool increment)
 {
 	iter_entry_t source = interface->getSources().find(m_Device);
 
@@ -62,7 +62,7 @@ void SourceOutputEntry::cycleSwitch(PAInterface *interface, bool increment)
 	pa_operation_unref(op);
 }
 
-void SourceOutputEntry::move(PAInterface *interface, uint32_t idx)
+void SourceOutputEntry::move(uint32_t idx)
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 	pa_operation *     op = pa_context_move_source_output_by_index(interface->getPAContext(), m_Index, idx, &PAInterface::cb_success, interface);
@@ -72,7 +72,7 @@ void SourceOutputEntry::move(PAInterface *interface, uint32_t idx)
 	pa_operation_unref(op);
 }
 
-void SourceOutputEntry::kill(PAInterface *interface)
+void SourceOutputEntry::kill()
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 	pa_operation *     op = pa_context_kill_source_output(interface->getPAContext(), m_Index, &PAInterface::cb_success, interface);

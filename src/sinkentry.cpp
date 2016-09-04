@@ -21,7 +21,7 @@ void SinkEntry::update(const pa_sink_info *info)
 	m_State = info->state;
 }
 
-void SinkEntry::setVolume(PAInterface *interface, const int channel, const pa_volume_t volume)
+void SinkEntry::setVolume(const int channel, const pa_volume_t volume)
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 
@@ -37,7 +37,7 @@ void SinkEntry::setVolume(PAInterface *interface, const int channel, const pa_vo
 	pa_operation_unref(op);
 }
 
-void SinkEntry::setMute(PAInterface *interface, bool mute)
+void SinkEntry::setMute(bool mute)
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 
@@ -47,7 +47,7 @@ void SinkEntry::setMute(PAInterface *interface, bool mute)
 	pa_operation_unref(op);
 }
 
-void SinkEntry::cycleSwitch(PAInterface *interface, bool increment)
+void SinkEntry::cycleSwitch(bool increment)
 {
 	int delta = increment ? 1 : -1;
 	if (!m_Ports.size())
@@ -60,7 +60,7 @@ void SinkEntry::cycleSwitch(PAInterface *interface, bool increment)
 	pa_operation_unref(op);
 }
 
-void SinkEntry::setPort(PAInterface *interface, const char *port)
+void SinkEntry::setPort(const char *port)
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 

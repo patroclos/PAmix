@@ -21,7 +21,7 @@ void SourceEntry::update(const pa_source_info *info)
 	m_State = info->state;
 }
 
-void SourceEntry::setVolume(PAInterface *interface, const int channel, const pa_volume_t volume)
+void SourceEntry::setVolume(const int channel, const pa_volume_t volume)
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 
@@ -37,7 +37,7 @@ void SourceEntry::setVolume(PAInterface *interface, const int channel, const pa_
 	pa_operation_unref(op);
 }
 
-void SourceEntry::setMute(PAInterface *interface, bool mute)
+void SourceEntry::setMute(bool mute)
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 
@@ -47,7 +47,7 @@ void SourceEntry::setMute(PAInterface *interface, bool mute)
 	pa_operation_unref(op);
 }
 
-void SourceEntry::cycleSwitch(PAInterface *interface, bool increment)
+void SourceEntry::cycleSwitch(bool increment)
 {
 	int delta = increment ? 1 : -1;
 	if (!m_Ports.size())
@@ -60,7 +60,7 @@ void SourceEntry::cycleSwitch(PAInterface *interface, bool increment)
 	pa_operation_unref(op);
 }
 
-void SourceEntry::setPort(PAInterface *interface, const char *port)
+void SourceEntry::setPort(const char *port)
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 

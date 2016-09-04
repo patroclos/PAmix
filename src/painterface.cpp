@@ -94,8 +94,10 @@ void PAInterface::cb_sink_info(pa_context *context, const pa_sink_info *info, in
 	if (!eol)
 	{
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_Sinks;
+
+		std::lock_guard<std::mutex> lg(((PAInterface *)interface)->m_ModifyMutex);
 		if (!map.count(info->index) || !map[info->index])
-			map[info->index] = std::unique_ptr<Entry>(new SinkEntry());
+			map[info->index] = std::unique_ptr<Entry>(new SinkEntry((PAInterface *)interface));
 		map[info->index]->update(info);
 	}
 	else
@@ -107,8 +109,9 @@ void PAInterface::cb_source_info(pa_context *context, const pa_source_info *info
 	if (!eol)
 	{
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_Sources;
+		std::lock_guard<std::mutex> lg(((PAInterface *)interface)->m_ModifyMutex);
 		if (!map.count(info->index) || !map[info->index])
-			map[info->index] = std::unique_ptr<Entry>(new SourceEntry());
+			map[info->index] = std::unique_ptr<Entry>(new SourceEntry((PAInterface *)interface));
 		map[info->index]->update(info);
 	}
 	else
@@ -120,8 +123,9 @@ void PAInterface::cb_sink_input_info(pa_context *context, const pa_sink_input_in
 	if (!eol)
 	{
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_SinkInputs;
+		std::lock_guard<std::mutex> lg(((PAInterface *)interface)->m_ModifyMutex);
 		if (!map.count(info->index) || !map[info->index])
-			map[info->index] = std::unique_ptr<Entry>(new SinkInputEntry());
+			map[info->index] = std::unique_ptr<Entry>(new SinkInputEntry((PAInterface *)interface));
 		map[info->index]->update(info);
 	}
 	else
@@ -139,8 +143,9 @@ void PAInterface::cb_source_output_info(pa_context *context, const pa_source_out
 				return;
 		}
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_SourceOutputs;
+		std::lock_guard<std::mutex> lg(((PAInterface *)interface)->m_ModifyMutex);
 		if (!map.count(info->index) || !map[info->index])
-			map[info->index] = std::unique_ptr<Entry>(new SourceOutputEntry());
+			map[info->index] = std::unique_ptr<Entry>(new SourceOutputEntry((PAInterface *)interface));
 		map[info->index]->update(info);
 	}
 	else
@@ -182,6 +187,8 @@ void PAInterface::cb_read(pa_stream *stream, size_t nbytes, void *iepair)
 
 void PAInterface::cb_stream_state(pa_stream *stream, void *entry)
 {
+	if (!entry)
+		return;
 	pa_stream_state_t state = pa_stream_get_state(stream);
 	if (state == PA_STREAM_TERMINATED || state == PA_STREAM_FAILED)
 	{
@@ -193,11 +200,14 @@ void __updateEntries(PAInterface *interface, std::map<uint32_t, std::unique_ptr<
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 
-	for (iter_entry_t it = map.begin(); it != map.end();)
-		if (it->second)
-			it++->second->m_Kill = true;
-		else
-			it = map.erase(it);
+	{
+		std::lock_guard<std::mutex> mlg(interface->m_ModifyMutex);
+		for (iter_entry_t it = map.begin(); it != map.end();)
+			if (it->second)
+				it++->second->m_Kill = true;
+			else
+				it = map.erase(it);
+	}
 
 	pa_operation *infooper = nullptr;
 	switch (entrytype)
@@ -223,9 +233,14 @@ void __updateEntries(PAInterface *interface, std::map<uint32_t, std::unique_ptr<
 		pa_threaded_mainloop_wait(interface->getPAMainloop());
 	pa_operation_unref(infooper);
 
-	interface->modifyLock();
+	std::lock_guard<std::mutex> modlg(interface->m_ModifyMutex);
 	for (iter_entry_t it = map.begin(); it != map.end();)
 	{
+		if (!it->second)
+		{
+			it = map.erase(it);
+			continue;
+		}
 		if (it->second->m_Kill)
 		{
 			for (std::vector<std::unique_ptr<std::pair<PAInterface *, Entry *>>>::iterator pairit = interface->m_IEPairs.begin(); pairit != interface->m_IEPairs.end();)
@@ -246,7 +261,6 @@ void __updateEntries(PAInterface *interface, std::map<uint32_t, std::unique_ptr<
 			it++;
 		}
 	}
-	interface->modifyUnlock();
 }
 
 void PAInterface::_updateSinks(PAInterface *interface)
@@ -376,7 +390,7 @@ void PAInterface::createMonitorStreamForEntry(Entry *entry, int type)
 	if (type == ENTRY_SINKINPUT)
 	{
 		uint32_t dev = ((SinkInputEntry *)entry)->m_Device;
-		if (m_Sinks.count(dev))
+		if (m_Sinks.count(dev) && m_Sinks[dev])
 			entry->m_Monitor = _createMonitor(this, m_Sinks[dev]->m_Index, entry, entry->m_Index);
 	}
 	else
@@ -396,14 +410,4 @@ void PAInterface::notifySubscription(const pai_subscription_type_t type)
 	{
 		m_Subscription_callback(this, type);
 	}
-}
-
-void PAInterface::modifyLock()
-{
-	m_modifyMutex.lock();
-}
-
-void PAInterface::modifyUnlock()
-{
-	m_modifyMutex.unlock();
 }

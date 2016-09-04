@@ -14,7 +14,7 @@ void SinkInputEntry::update(const pa_sink_input_info *info)
 	m_Device = info->sink;
 }
 
-void SinkInputEntry::setVolume(PAInterface *interface, const int channel, const pa_volume_t volume)
+void SinkInputEntry::setVolume(const int channel, const pa_volume_t volume)
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 
@@ -30,7 +30,7 @@ void SinkInputEntry::setVolume(PAInterface *interface, const int channel, const 
 	pa_operation_unref(op);
 }
 
-void SinkInputEntry::setMute(PAInterface *interface, bool mute)
+void SinkInputEntry::setMute(bool mute)
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 	pa_operation *     op = pa_context_set_sink_input_mute(interface->getPAContext(), m_Index, mute, &PAInterface::cb_success, interface);
@@ -39,7 +39,7 @@ void SinkInputEntry::setMute(PAInterface *interface, bool mute)
 	pa_operation_unref(op);
 }
 
-void SinkInputEntry::cycleSwitch(PAInterface *interface, bool increment)
+void SinkInputEntry::cycleSwitch(bool increment)
 {
 	iter_entry_t sink = interface->getSinks().find(m_Device);
 
@@ -62,7 +62,7 @@ void SinkInputEntry::cycleSwitch(PAInterface *interface, bool increment)
 	pa_operation_unref(op);
 }
 
-void SinkInputEntry::move(PAInterface *interface, uint32_t idx)
+void SinkInputEntry::move(uint32_t idx)
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 	pa_operation *     op = pa_context_move_sink_input_by_index(interface->getPAContext(), m_Index, idx, &PAInterface::cb_success, interface);
@@ -72,7 +72,7 @@ void SinkInputEntry::move(PAInterface *interface, uint32_t idx)
 	pa_operation_unref(op);
 }
 
-void SinkInputEntry::kill(PAInterface *interface)
+void SinkInputEntry::kill()
 {
 	mainloop_lockguard lg(interface->getPAMainloop());
 	pa_operation *     op = pa_context_kill_sink_input(interface->getPAContext(), m_Index, &PAInterface::cb_success, interface);

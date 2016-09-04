@@ -18,9 +18,10 @@ enum entry_type
 
 struct Entry
 {
+	PAInterface *  interface;
 	std::string    m_Name;
 	uint32_t       m_Index;
-	double         m_Peak;
+	double         m_Peak    = 0;
 	pa_stream *    m_Monitor = nullptr;
 	uint32_t       m_MonitorIndex;
 	bool           m_Mute;
@@ -29,12 +30,13 @@ struct Entry
 	bool           m_Lock = true;
 	bool           m_Kill;
 
+	Entry(PAInterface *iface);
 	~Entry();
 	// general methods
-	virtual void setVolume(PAInterface *interface, const int channel, const pa_volume_t volume) = 0;
-	virtual void setMute(PAInterface *interface, bool mute) = 0;
-	virtual void addVolume(PAInterface *interface, const int channel, const double deltaPct);
-	virtual void cycleSwitch(PAInterface *interface, bool increment) = 0;
+	virtual void setVolume(const int channel, const pa_volume_t volume) = 0;
+	virtual void setMute(bool mute) = 0;
+	virtual void addVolume(const int channel, const double deltaPct);
+	virtual void cycleSwitch(bool increment) = 0;
 
 	virtual void update(const pa_sink_info *info) {}
 	virtual void update(const pa_source_info *info) {}
@@ -42,12 +44,12 @@ struct Entry
 	virtual void update(const pa_source_output_info *info) {}
 
 	// device methods
-	virtual void suspend(PAInterface *interface) {}
-	virtual void setPort(PAInterface *interface, const char *port) {}
+	virtual void suspend() {}
+	virtual void setPort(const char *port) {}
 
 	// stream methods
-	virtual void move(PAInterface *interface, uint32_t idx) {}
-	virtual void kill(PAInterface *interface) {}
+	virtual void move(uint32_t idx) {}
+	virtual void               kill() {}
 };
 
 struct DeviceEntry : public Entry
@@ -55,78 +57,96 @@ struct DeviceEntry : public Entry
 	int                      m_Port;
 	std::vector<std::string> m_Ports;
 
+	DeviceEntry(PAInterface *iface)
+	    : Entry(iface){};
+
 	// general methods
-	virtual void setVolume(PAInterface *interface, const int channel, const pa_volume_t volume) = 0;
-	virtual void setMute(PAInterface *interface, bool mute)          = 0;
-	virtual void cycleSwitch(PAInterface *interface, bool increment) = 0;
+	virtual void setVolume(const int channel, const pa_volume_t volume) = 0;
+	virtual void setMute(bool mute)          = 0;
+	virtual void cycleSwitch(bool increment) = 0;
 
 	virtual std::string getPort() { return m_Port > -1 ? m_Ports[m_Port] : ""; }
-	virtual void setPort(PAInterface *interface, const char *port) = 0;
+	virtual void setPort(const char *port) = 0;
 };
 
 struct StreamEntry : public Entry
 {
 	uint32_t m_Device;
 
-	// general methods
-	virtual void setVolume(PAInterface *interface, const int channel, const pa_volume_t volume) = 0;
-	virtual void setMute(PAInterface *interface, bool mute)          = 0;
-	virtual void cycleSwitch(PAInterface *interface, bool increment) = 0;
+	StreamEntry(PAInterface *iface)
+	    : Entry(iface){};
 
-	virtual void move(PAInterface *interface, uint32_t idx) = 0;
-	virtual void kill(PAInterface *interface) = 0;
+	// general methods
+	virtual void setVolume(const int channel, const pa_volume_t volume) = 0;
+	virtual void setMute(bool mute)          = 0;
+	virtual void cycleSwitch(bool increment) = 0;
+
+	virtual void move(uint32_t idx) = 0;
+	virtual void kill()             = 0;
 };
 
 struct SinkEntry : public DeviceEntry
 {
 	pa_sink_state_t m_State;
 
+	SinkEntry(PAInterface *iface)
+	    : DeviceEntry(iface) {}
+
 	void update(const pa_sink_info *info);
 
 	// general methods
-	virtual void setVolume(PAInterface *interface, const int channel, const pa_volume_t volume);
-	virtual void setMute(PAInterface *interface, bool mute);
-	virtual void cycleSwitch(PAInterface *interface, bool increment);
+	virtual void setVolume(const int channel, const pa_volume_t volume);
+	virtual void setMute(bool mute);
+	virtual void cycleSwitch(bool increment);
 
-	virtual void setPort(PAInterface *interface, const char *port);
+	virtual void setPort(const char *port);
 };
 
 struct SourceEntry : public DeviceEntry
 {
 	pa_source_state_t m_State;
 
+	SourceEntry(PAInterface *iface)
+	    : DeviceEntry(iface) {}
+
 	void update(const pa_source_info *info);
 
 	// general methods
-	virtual void setVolume(PAInterface *interface, const int channel, const pa_volume_t volume);
-	virtual void setMute(PAInterface *interface, bool mute);
-	virtual void cycleSwitch(PAInterface *interface, bool increment);
+	virtual void setVolume(const int channel, const pa_volume_t volume);
+	virtual void setMute(bool mute);
+	virtual void cycleSwitch(bool increment);
 
-	virtual void setPort(PAInterface *interface, const char *port);
+	virtual void setPort(const char *port);
 };
 
 struct SinkInputEntry : public StreamEntry
 {
 	void update(const pa_sink_input_info *info);
 
-	// general methods
-	virtual void setVolume(PAInterface *interface, const int channel, const pa_volume_t volume);
-	virtual void setMute(PAInterface *interface, bool mute);
-	virtual void cycleSwitch(PAInterface *interface, bool increment);
+	SinkInputEntry(PAInterface *iface)
+	    : StreamEntry(iface) {}
 
-	virtual void move(PAInterface *interface, uint32_t idx);
-	virtual void kill(PAInterface *interface);
+	// general methods
+	virtual void setVolume(const int channel, const pa_volume_t volume);
+	virtual void setMute(bool mute);
+	virtual void cycleSwitch(bool increment);
+
+	virtual void move(uint32_t idx);
+	virtual void kill();
 };
 
 struct SourceOutputEntry : public StreamEntry
 {
 	void update(const pa_source_output_info *info);
 
-	// general methods
-	virtual void setVolume(PAInterface *interface, const int channel, const pa_volume_t volume);
-	virtual void setMute(PAInterface *interface, bool mute);
-	virtual void cycleSwitch(PAInterface *interface, bool increment);
+	SourceOutputEntry(PAInterface *iface)
+	    : StreamEntry(iface) {}
 
-	virtual void move(PAInterface *interface, uint32_t idx);
-	virtual void kill(PAInterface *interface);
+	// general methods
+	virtual void setVolume(const int channel, const pa_volume_t volume);
+	virtual void setMute(bool mute);
+	virtual void cycleSwitch(bool increment);
+
+	virtual void move(uint32_t idx);
+	virtual void kill();
 };

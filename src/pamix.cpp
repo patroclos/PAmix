@@ -72,11 +72,15 @@ void selectEntries(PAInterface *interface, entry_type type)
 	entryType = type;
 }
 
-void generateMeter(int y, int x, int width, const double pct, const double maxvol)
+void generateMeter(int y, int x, int width, double pct, const double maxvol)
 {
 	int segments = width - 2;
 	if (segments <= 0)
 		return;
+	if (pct < 0)
+		pct = 0;
+	else if (pct > maxvol)
+		pct    = maxvol;
 	int filled = pct / maxvol * (double)segments;
 	if (filled > segments)
 		filled = segments;
@@ -104,7 +108,7 @@ void generateMeter(int y, int x, int width, const double pct, const double maxvo
 
 void drawEntries(PAInterface *interface)
 {
-	interface->modifyLock();
+	std::lock_guard<std::mutex> modlg(interface->m_ModifyMutex);
 	std::lock_guard<std::mutex> lg(screenMutex);
 
 	if (selectedEntry > entryMap->size() - 1)
@@ -229,16 +233,15 @@ void drawEntries(PAInterface *interface)
 
 	numDisplayedEntries = index - skipEntries;
 
-	interface->modifyUnlock();
 	refresh();
 }
 
 void drawMonitors(PAInterface *interface)
 {
 	std::lock_guard<std::mutex> lg(screenMutex);
-	interface->modifyLock();
-	iter_entry_t it    = std::next(entryMap->begin(), skipEntries);
-	uint32_t     index = 0;
+	std::lock_guard<std::mutex> modlg(interface->m_ModifyMutex);
+	iter_entry_t                it    = std::next(entryMap->begin(), skipEntries);
+	uint32_t                    index = 0;
 	for (; it != entryMap->end(); it++, index++)
 	{
 		if (index >= skipEntries + numDisplayedEntries)
@@ -246,7 +249,6 @@ void drawMonitors(PAInterface *interface)
 		uint32_t y = mapMonitorLines[it->first];
 		generateMeter(y, 1, COLS - 2, it->second->m_Peak, 1.0);
 	}
-	interface->modifyUnlock();
 	refresh();
 }
 
@@ -262,34 +264,34 @@ void set_volume(PAInterface *interface, double pct)
 {
 	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
-		it->second->setVolume(interface, it->second->m_Lock ? -1 : selectedChannel, PA_VOLUME_NORM * pct);
+		it->second->setVolume(it->second->m_Lock ? -1 : selectedChannel, PA_VOLUME_NORM * pct);
 }
 
 void add_volume(PAInterface *interface, double pct)
 {
 	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
-		it->second->addVolume(interface, it->second->m_Lock ? -1 : selectedChannel, pct);
+		it->second->addVolume(it->second->m_Lock ? -1 : selectedChannel, pct);
 }
 
 void cycle_switch(PAInterface *interface, bool increment)
 {
 	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
-		it->second->cycleSwitch(interface, increment);
+		it->second->cycleSwitch(increment);
 }
 
 void set_mute(PAInterface *interface, bool mute)
 {
 	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
-		it->second->setMute(interface, mute);
+		it->second->setMute(mute);
 }
 void toggle_mute(PAInterface *interface)
 {
 	iter_entry_t it = get_selected_entry_iter(interface);
 	if (it != entryMap->end())
-		it->second->setMute(interface, !it->second->m_Mute);
+		it->second->setMute(!it->second->m_Mute);
 }
 
 void adjustDisplay()

@@ -45,8 +45,6 @@ private:
 	std::map<uint32_t, std::unique_ptr<Entry>> m_SinkInputs;
 	std::map<uint32_t, std::unique_ptr<Entry>> m_SourceOutputs;
 
-	std::mutex m_modifyMutex;
-
 	pai_subscription_cb m_Subscription_callback;
 
 private:
@@ -83,6 +81,8 @@ public:
 
 	void subscribe(pai_subscription_cb callback);
 
+	std::mutex m_ModifyMutex;
+
 	std::map<uint32_t, std::unique_ptr<Entry>> &getSinks() { return m_Sinks; }
 	std::map<uint32_t, std::unique_ptr<Entry>> &getSources() { return m_Sources; }
 	std::map<uint32_t, std::unique_ptr<Entry>> &getSinkInputs() { return m_SinkInputs; }
@@ -90,9 +90,6 @@ public:
 
 	std::vector<std::unique_ptr<std::pair<PAInterface *, Entry *>>> m_IEPairs;
 	void createMonitorStreamForEntry(Entry *entry, int type);
-
-	void modifyLock();
-	void modifyUnlock();
 
 	//PulseAudio API Callbacks
 	//userptr points to current PAInterface instance
