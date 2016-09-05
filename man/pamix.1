@@ -1,5 +1,5 @@
 ./" this is the manpage of the pamix pulseaudio ncurses mixer
-.TH pamix 1 "14.08.2016" "V1.2" "pamix man page"
+.TH pamix 1 "05 Sep 2016" "V1.4" "pamix man page"
 
 .SH SYONPSIS
 pamix
@@ -8,11 +8,130 @@ pamix
 This is a pavucontrol inspired ncurses based pulseaudio mixer for the commandline
 
 .SH CONFIGURATION
-pamix looks for a configuration file in $XDG_CONFIG_HOME (or $HOME/.config if it's undefined) and $XDG_DATA_DIRS (or /usr/share if it's undefined) called pamix.conf.
+pamix is configured using a file called pamix.conf inside the $XDG_CONFIG_HOME or $XDG_DATA_DIRS directories or their default values, should they not be set.
 .br
-If no config file is found pamix will use its default configuration (see section DEFAULT CONFIGURATION)
+$XDG_CONFIG_HOME will be preferred over $XDG_DATA_DIRS.
 .br
-The default configuration is located at $XDG_DATA_DIRS/pamix.conf.
+.start
+.SH COMMANDS
+.PP
+PAmix conf files support the following commands:
+.br
+* set
+* bind
+* unbind
+* unbindall
+
+.PP
+characters after a ';' will be interpreted as comments and ignored
+
+.SH set
+.PP
+\fBSYNOPSIS:\fP set KEY=VALUE
+
+.PP
+set is used to set a variable. This is currently only relevant for the 'pulseaudio\_autospawn' option.
+
+.SH bind
+.PP
+\fBSYNOPSIS:\fP bind KEYNAME MIXER\-COMMAND [ARGUMENT]
+
+.PP
+bind is used to bind a keyname to a mixer\-command.
+.br
+Some mixer\-commands require an argument.
+.br
+You can bind a keyname to multiple mixer\-commands.
+
+.SH unbind
+.PP
+\fBSYNOPSIS:\fP unbind KEYNAME
+
+.PP
+unbind will remove all bindings for the given keyname
+
+.SH unbindall
+.PP
+\fBSYNOPSIS:\fP unbindall
+
+.PP
+unbindall will remove all key bindings
+
+
+.SH PAMIX\-COMMANDS
+.PP
+Pamix\-Commands can be bound to keys using the bind command and are used to interact with pamix.
+.br
+The following pamix\-commands are currently supported:
+* quit
+* select\-tab
+* select\-next
+* select\-prev
+* set\-volume
+* add\-volume
+* cycle\-next
+* cycle\-prev
+* toggle\-lock
+* set\-lock
+* toggle\-mute
+* set\-mute
+
+.SH quit
+.PP
+quit will cause PAmix to exit and takes no arguments.
+
+.SH select\-tab
+.PP
+select\-tab will select one of the following tabs: Output Devices, Input Devices, Playback, Recording
+.br
+select\-tab takes the number of the tab to switch to starting at 0 in the order mentioned.
+
+.SH select\-next and select\-prev
+.PP
+these commands are given the optional argument 'channel' they will select the next and previous channels.
+if no argument is given they will select the next and previous entry in the displayed tab.
+
+.SH set\-volume
+.PP
+this command takes the targetvalue in form of a double as an argument.
+.br
+depending on weather channels are locked, this command will set the volume of the selected entry/channel to the targetvalue given in the argument.
+.br
+\fIExample:\fP bind 0 set\-volume 1.0 \fI; this will set the volume to 100%\fP
+
+.SH add\-volume
+.PP
+this command takes a deltavalue in form of a double as an argument.
+.br
+the deltavalue can be negative
+\fIExample:\fP bind h add\-volume \-0.05 \fI; this will reduce the volume by 5%\fP
+
+.SH cycle\-next and cycle\-prev
+.PP
+these commands will change the device or port of the currently selected entry.
+.br
+they dont take any arguments.
+
+.SH toggle\-lock
+.PP
+this command toggles weather channels should be locked together for the currently selected entry
+.br
+and takes no arguments.
+
+.SH set\-lock
+.PP
+this command takes either '0' or '1' as an argument and sets the channel\-lock like the toggle\-lock mixer\-command.
+
+.SH toggle\-mute
+.PP
+toggles weather the currently selected entry is muted
+.br
+and takes no arguments.
+
+.SH set\-mute
+.PP
+works like the set\-lock mixer\-command, but sets weather the currently selected entry is muted or not
+.stop
 
 .SH DEFAULT CONFIGURATION
 pamix does not autospawn pulseaudio by default
