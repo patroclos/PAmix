@@ -15,4 +15,5 @@ pamix_SOURCES = \
 
 man1_MANS = man/pamix.1
 
-dist_data_DATA = pamix.conf
+pkgsysconfdir = $(sysconfdir)
+dist_pkgsysconf_DATA = pamix.conf

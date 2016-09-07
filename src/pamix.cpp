@@ -428,9 +428,9 @@ void loadConfiguration()
 	if (Configuration::loadFile(&configuration, path))
 		return;
 
-	char *xdg_data_dirs = getenv("XDG_DATA_DIRS");
+	char *xdg_config_dirs = getenv("XDG_CONFIG_DIRS");
 
-	path = xdg_data_dirs ? xdg_data_dirs : "/usr/share";
+	path = xdg_config_dirs ? xdg_config_dirs : "/etc";
 	path += "/pamix.conf";
 	size_t cpos = path.find(':');
 	while (cpos != std::string::npos)
