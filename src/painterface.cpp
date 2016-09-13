@@ -139,7 +139,19 @@ void PAInterface::cb_source_output_info(pa_context *context, const pa_source_out
 		const char *appid = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_ID);
 		if (appid)
 		{
-			if (strcmp(appid, "pamix") == 0 || strcmp(appid, "org.PulseAudio.pavucontrol") == 0)
+			if (strcmp(appid, "pamix") == 0)
+			{
+				const pa_cvolume *cv = &info->volume;
+				if (cv->channels == 1 && cv->values[0] != PA_VOLUME_NORM)
+				{
+					PAInterface *iface = (PAInterface *)interface;
+					pa_cvolume   cvol;
+					pa_cvolume_set(&cvol, 1, PA_VOLUME_NORM);
+					pa_context_set_source_output_volume(iface->getPAContext(), info->index, &cvol, nullptr, nullptr);
+				}
+				return;
+			}
+			if (strcmp(appid, "org.PulseAudio.pavucontrol"))
 				return;
 		}
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_SourceOutputs;
@@ -376,6 +388,7 @@ pa_stream *_createMonitor(PAInterface *interface, uint32_t source, Entry *entry,
 		pa_stream_unref(s);
 		return nullptr;
 	}
+
 	return s;
 }
 
