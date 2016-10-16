@@ -119,7 +119,7 @@ void drawEntries(PAInterface *interface)
 
 	clear();
 
-	mvprintw(0, 1, "%d/%d", selectedEntry + 1, entryMap->size());
+	mvprintw(0, 1, "%d/%d", entryMap->empty() ? 0 : selectedEntry + 1, entryMap->size());
 	const char *entryname = entryType == ENTRY_SINK ? "Output Devices" : entryType == ENTRY_SOURCE ? "Input Devices" : entryType == ENTRY_SINKINPUT ? "Playback" : "Recording";
 	mvprintw(0, 10, "%s", entryname);
 
