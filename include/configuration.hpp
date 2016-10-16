@@ -7,6 +7,7 @@
 #include <vector>
 
 #define CONFIGURATION_AUTOSPAWN_PULSE "pulseaudio_autospawn"
+#define CONFIGURATION_DEFAULT_TAB "default_tab"
 
 struct keybind_t
 {

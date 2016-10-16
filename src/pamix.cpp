@@ -499,7 +499,15 @@ int main(int argc, char **argv)
 	if (configuration.has(CONFIGURATION_AUTOSPAWN_PULSE))
 		pai.setAutospawn(configuration.getBool(CONFIGURATION_AUTOSPAWN_PULSE));
 
-	selectEntries(&pai, ENTRY_SINKINPUT);
+	entry_type entry = ENTRY_SINKINPUT;
+	if (configuration.has(CONFIGURATION_DEFAULT_TAB))
+	{
+		int value = configuration.getInt(CONFIGURATION_DEFAULT_TAB);
+		if (value >= 0 && value < ENTRY_COUNT)
+			entry = (entry_type) value;
+	}
+	selectEntries(&pai, entry);
+
 	pai.subscribe(pai_subscription);
 	if (!pai.connect())
 	{
