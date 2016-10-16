@@ -26,6 +26,10 @@ fi
 # Checks for libraries.
 
 AS_IF([test "$enable_unicode" = "yes"], [PKG_CHECK_MODULES([NCURSES], [ncursesw])], [PKG_CHECK_MODULES([NCURSES], [ncurses])])
+
+AC_SEARCH_LIBS([use_default_colors], [ncurses curses],
+	AC_DEFINE(HAVE_USE_DEFAULT_COLORS, 1, [Define to 1 if the curses library has the function `use_default_colors`. ]))
+
 PKG_CHECK_MODULES([PULSEAUDIO], [libpulse])
 
 # Checks for header files.

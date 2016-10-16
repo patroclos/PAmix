@@ -405,9 +405,16 @@ void sig_handle_resize(int s)
 void init_colors()
 {
 	start_color();
+#ifdef HAVE_USE_DEFAULT_COLORS
+	use_default_colors();
+	init_pair(1, COLOR_GREEN, -1);
+	init_pair(2, COLOR_YELLOW, -1);
+	init_pair(3, COLOR_RED, -1);
+#else
 	init_pair(1, COLOR_GREEN, 0);
 	init_pair(2, COLOR_YELLOW, 0);
 	init_pair(3, COLOR_RED, 0);
+#endif
 }
 
 void sig_handle(int sig)
