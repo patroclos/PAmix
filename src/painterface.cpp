@@ -22,6 +22,7 @@ PAInterface::~PAInterface()
 	m_Sources.clear();
 	m_SinkInputs.clear();
 	m_SourceOutputs.clear();
+    m_Cards.clear();
 	if (m_Context)
 	{
 		pa_operation *o;
@@ -69,6 +70,8 @@ void PAInterface::_updatethread(pai_subscription_type_t paisubtype, pa_subscript
 			PAInterface::_updateInputs(interface);
 		else if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT, type))
 			PAInterface::_updateOutputs(interface);
+		else if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_CARD, type))
+			PAInterface::_updateCards(interface);
 	}
 	interface->notifySubscription(paisubtype);
 }
@@ -76,7 +79,7 @@ void PAInterface::_updatethread(pai_subscription_type_t paisubtype, pa_subscript
 void PAInterface::cb_subscription_event(pa_context *context, pa_subscription_event_type_t type, uint32_t idx, void *interface)
 {
 	pai_subscription_type_t paisubtype = 0x0U;
-	if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SOURCE | PA_SUBSCRIPTION_MASK_SINK_INPUT | PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT, type))
+	if (pa_subscription_match_flags(PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SOURCE | PA_SUBSCRIPTION_MASK_SINK_INPUT | PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT | PA_SUBSCRIPTION_MASK_CARD, type))
 	{
 		paisubtype = PAI_SUBSCRIPTION_MASK_INFO;
 	}
@@ -123,6 +126,7 @@ void PAInterface::cb_sink_input_info(pa_context *context, const pa_sink_input_in
 	if (!eol)
 	{
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_SinkInputs;
+
 		std::lock_guard<std::mutex> lg(((PAInterface *)interface)->m_ModifyMutex);
 		if (!map.count(info->index) || !map[info->index])
 			map[info->index] = std::unique_ptr<Entry>(new SinkInputEntry((PAInterface *)interface));
@@ -158,6 +162,21 @@ void PAInterface::cb_source_output_info(pa_context *context, const pa_source_out
 		std::lock_guard<std::mutex> lg(((PAInterface *)interface)->m_ModifyMutex);
 		if (!map.count(info->index) || !map[info->index])
 			map[info->index] = std::unique_ptr<Entry>(new SourceOutputEntry((PAInterface *)interface));
+		map[info->index]->update(info);
+	}
+	else
+		PAInterface::signal_mainloop((PAInterface *)interface);
+}
+
+void PAInterface::cb_card_info(pa_context *context, const pa_card_info *info, int eol, void *interface)
+{
+	if (!eol)
+	{
+		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *)interface)->m_Cards;
+
+		std::lock_guard<std::mutex> lg(((PAInterface *)interface)->m_ModifyMutex);
+		if (!map.count(info->index) || !map[info->index])
+			map[info->index] = std::unique_ptr<Entry>(new CardEntry((PAInterface *)interface));
 		map[info->index]->update(info);
 	}
 	else
@@ -236,6 +255,9 @@ void __updateEntries(PAInterface *interface, std::map<uint32_t, std::unique_ptr<
 	case ENTRY_SOURCEOUTPUT:
 		infooper = pa_context_get_source_output_info_list(interface->getPAContext(), &PAInterface::cb_source_output_info, interface);
 		break;
+	case ENTRY_CARDS:
+		infooper = pa_context_get_card_info_list(interface->getPAContext(), &PAInterface::cb_card_info, interface);
+		break;
 	default:
 		return;
 	}
@@ -295,6 +317,11 @@ void PAInterface::_updateOutputs(PAInterface *interface)
 	__updateEntries(interface, interface->getSourceOutputs(), ENTRY_SOURCEOUTPUT);
 }
 
+void PAInterface::_updateCards(PAInterface *interface)
+{
+	__updateEntries(interface, interface->getCards(), ENTRY_CARDS);
+}
+
 bool PAInterface::connect()
 {
 	m_Mainloop = pa_threaded_mainloop_new();
@@ -342,6 +369,7 @@ bool PAInterface::connect()
 	updateSources();
 	updateInputs();
 	updateOutputs();
+	updateCards();
 	return true;
 }
 
@@ -406,7 +434,7 @@ void PAInterface::createMonitorStreamForEntry(Entry *entry, int type)
 		if (m_Sinks.count(dev) && m_Sinks[dev])
 			entry->m_Monitor = _createMonitor(this, m_Sinks[dev]->m_Index, entry, entry->m_Index);
 	}
-	else
+	else if (type != ENTRY_CARDS)
 	{
 		entry->m_Monitor = _createMonitor(this, entry->m_MonitorIndex, entry, -1);
 	}

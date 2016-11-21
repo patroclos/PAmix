@@ -66,6 +66,9 @@ void selectEntries(PAInterface *interface, entry_type type)
 	case ENTRY_SOURCEOUTPUT:
 		entryMap = &interface->getSourceOutputs();
 		break;
+	case ENTRY_CARDS:
+		entryMap = &interface->getCards();
+		break;
 	default:
 		return;
 	}
@@ -120,7 +123,12 @@ void drawEntries(PAInterface *interface)
 	clear();
 
 	mvprintw(0, 1, "%d/%d", entryMap->empty() ? 0 : selectedEntry + 1, entryMap->size());
-	const char *entryname = entryType == ENTRY_SINK ? "Output Devices" : entryType == ENTRY_SOURCE ? "Input Devices" : entryType == ENTRY_SINKINPUT ? "Playback" : "Recording";
+	const char *entryname =
+		entryType == ENTRY_SINK ? "Output Devices" :
+		entryType == ENTRY_SOURCE ? "Input Devices" :
+		entryType == ENTRY_SINKINPUT ? "Playback" :
+		entryType == ENTRY_SOURCEOUTPUT ? "Recording" :
+		"Cards";
 	mvprintw(0, 10, "%s", entryname);
 
 	unsigned y     = 2;
@@ -213,6 +221,10 @@ void drawEntries(PAInterface *interface)
 		case ENTRY_SOURCEOUTPUT:
 			if (it->second && interface->getSources()[((SourceOutputEntry *)it->second.get())->m_Device])
 				sinkname = interface->getSources()[((SourceOutputEntry *)it->second.get())->m_Device]->m_Name;
+			break;
+		case ENTRY_CARDS:
+			if (it->second)
+				sinkname = ((CardEntry *)it->second.get())->m_Profiles[((CardEntry *)it->second.get())->m_Profile].description;
 			break;
 		default:
 			break;

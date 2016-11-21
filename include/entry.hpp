@@ -14,6 +14,7 @@ enum entry_type
 	ENTRY_SOURCE,
 	ENTRY_SINKINPUT,
 	ENTRY_SOURCEOUTPUT,
+	ENTRY_CARDS,
 	ENTRY_COUNT
 };
 
@@ -44,6 +45,7 @@ struct Entry
 	virtual void update(const pa_source_info *info) {}
 	virtual void update(const pa_sink_input_info *info) {}
 	virtual void update(const pa_source_output_info *info) {}
+	virtual void update(const pa_card_info *info) {}
 
 	// device methods
 	virtual void suspend() {}
@@ -151,4 +153,33 @@ struct SourceOutputEntry : public StreamEntry
 
 	virtual void move(uint32_t idx);
 	virtual void kill();
+};
+
+
+struct CardEntry : public Entry
+{
+	struct CardProfile
+	{
+		std::string name;
+		std::string description;
+
+		CardProfile(pa_card_profile_info2 *profile)
+			: name(profile->name)
+			, description(profile->description) {};
+	};
+
+	int                      m_Profile;
+	std::vector<CardProfile> m_Profiles;
+
+	void update(const pa_card_info *info);
+
+	CardEntry(PAInterface *iface)
+	    : Entry(iface) {}
+
+	virtual void cycleSwitch(bool increment);
+
+	virtual void setVolume(const int channel, const pa_volume_t volume) {}
+	virtual void setMute(bool mute) {}
+	virtual void move(uint32_t idx) {}
+	virtual void kill() {}
 };
