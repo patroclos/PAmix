@@ -44,12 +44,12 @@ void pamix_add_volume(argument_t arg)
 
 void pamix_cycle_next(argument_t arg)
 {
-	cycle_switch(interface, arg.b);
+	cycle_switch(interface, true);
 }
 
 void pamix_cycle_prev(argument_t arg)
 {
-	cycle_switch(interface, arg.b);
+	cycle_switch(interface, false);
 }
 
 void pamix_toggle_lock(argument_t arg)
