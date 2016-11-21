@@ -66,6 +66,9 @@ void selectEntries(PAInterface *interface, entry_type type)
 	case ENTRY_SOURCEOUTPUT:
 		entryMap = &interface->getSourceOutputs();
 		break;
+	case ENTRY_CARDS:
+		entryMap = &interface->getCards();
+		break;
 	default:
 		return;
 	}
@@ -120,7 +123,12 @@ void drawEntries(PAInterface *interface)
 	clear();
 
 	mvprintw(0, 1, "%d/%d", entryMap->empty() ? 0 : selectedEntry + 1, entryMap->size());
-	const char *entryname = entryType == ENTRY_SINK ? "Output Devices" : entryType == ENTRY_SOURCE ? "Input Devices" : entryType == ENTRY_SINKINPUT ? "Playback" : "Recording";
+	const char *entryname =
+		entryType == ENTRY_SINK ? "Output Devices" :
+		entryType == ENTRY_SOURCE ? "Input Devices" :
+		entryType == ENTRY_SINKINPUT ? "Playback" :
+		entryType == ENTRY_SOURCEOUTPUT ? "Recording" :
+		"Cards";
 	mvprintw(0, 10, "%s", entryname);
 
 	unsigned y     = 2;
@@ -143,7 +151,7 @@ void drawEntries(PAInterface *interface)
 		if (y + numChannels + 2 > (unsigned)LINES)
 			break;
 
-		if (it->second->m_Lock)
+		if (it->second->m_Meter && it->second->m_Lock)
 		{
 			generateMeter(y, 32, COLS - 33, vol, MAX_VOL);
 
@@ -152,7 +160,7 @@ void drawEntries(PAInterface *interface)
 				descstring.insert(0, SYM_ARROW);
 			mvprintw(y++, 1, descstring.c_str(), dB, vol);
 		}
-		else
+		else if (it->second->m_Meter)
 		{
 			for (uint32_t chan = 0; chan < numChannels; chan++)
 			{
@@ -172,7 +180,8 @@ void drawEntries(PAInterface *interface)
 		double peak = it->second->m_Peak;
 
 		mapMonitorLines[it->first] = y;
-		generateMeter(y++, 1, COLS - 2, peak, 1.0);
+		if (it->second->m_Meter)
+			generateMeter(y++, 1, COLS - 2, peak, 1.0);
 
 		if (isSelectedEntry)
 			attron(A_STANDOUT);
@@ -213,6 +222,10 @@ void drawEntries(PAInterface *interface)
 			if (it->second && interface->getSources()[((SourceOutputEntry *)it->second.get())->m_Device])
 				sinkname = interface->getSources()[((SourceOutputEntry *)it->second.get())->m_Device]->m_Name;
 			break;
+		case ENTRY_CARDS:
+			if (it->second)
+				sinkname = ((CardEntry *)it->second.get())->m_Profiles[((CardEntry *)it->second.get())->m_Profile].description;
+			break;
 		default:
 			break;
 		}
@@ -247,7 +260,8 @@ void drawMonitors(PAInterface *interface)
 		if (index >= skipEntries + numDisplayedEntries)
 			break;
 		uint32_t y = mapMonitorLines[it->first];
-		generateMeter(y, 1, COLS - 2, it->second->m_Peak, 1.0);
+		if (it->second->m_Meter)
+			generateMeter(y, 1, COLS - 2, it->second->m_Peak, 1.0);
 	}
 	refresh();
 }

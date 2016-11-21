@@ -2,6 +2,7 @@ bin_PROGRAMS = pamix
 pamix_CXXFLAGS = -I$(top_srcdir)/include -pthread $(NCURSES_CFLAGS) $(PULSEAUDIO_CFLAGS)
 pamix_LDADD = $(NCURSES_LIBS) $(PULSEAUDIO_LIBS)
 pamix_SOURCES = \
+		src/cardentry.cpp \
 		src/volumeutil.cpp\
 		src/sinkentry.cpp\
 		src/sourceentry.cpp\

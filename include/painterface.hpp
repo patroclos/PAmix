@@ -44,6 +44,7 @@ private:
 	std::map<uint32_t, std::unique_ptr<Entry>> m_Sources;
 	std::map<uint32_t, std::unique_ptr<Entry>> m_SinkInputs;
 	std::map<uint32_t, std::unique_ptr<Entry>> m_SourceOutputs;
+	std::map<uint32_t, std::unique_ptr<Entry>> m_Cards;
 
 	pai_subscription_cb m_Subscription_callback;
 
@@ -54,6 +55,7 @@ private:
 	static void _updateSources(PAInterface *interface);
 	static void _updateInputs(PAInterface *interface);
 	static void _updateOutputs(PAInterface *interface);
+	static void _updateCards(PAInterface *interface);
 
 	static void _updatethread(pai_subscription_type_t paisubtype, pa_subscription_event_type_t type, PAInterface *interface);
 
@@ -63,6 +65,7 @@ private:
 	void updateSources() { _updateSources(this); }
 	void updateInputs() { _updateInputs(this); }
 	void updateOutputs() { _updateOutputs(this); }
+	void updateCards() { _updateCards(this); }
 
 	void notifySubscription(const pai_subscription_type_t);
 
@@ -87,6 +90,7 @@ public:
 	std::map<uint32_t, std::unique_ptr<Entry>> &getSources() { return m_Sources; }
 	std::map<uint32_t, std::unique_ptr<Entry>> &getSinkInputs() { return m_SinkInputs; }
 	std::map<uint32_t, std::unique_ptr<Entry>> &getSourceOutputs() { return m_SourceOutputs; }
+	std::map<uint32_t, std::unique_ptr<Entry>> &getCards() { return m_Cards; }
 
 	std::vector<std::unique_ptr<std::pair<PAInterface *, Entry *>>> m_IEPairs;
 	void createMonitorStreamForEntry(Entry *entry, int type);
@@ -102,6 +106,7 @@ public:
 	static void cb_source_info(pa_context *context, const pa_source_info *info, int eol, void *interface);
 	static void cb_sink_input_info(pa_context *context, const pa_sink_input_info *info, int eol, void *interface);
 	static void cb_source_output_info(pa_context *context, const pa_source_output_info *info, int eol, void *interface);
+	static void cb_card_info(pa_context *context, const pa_card_info *info, int eol, void *interface);
 
 	static void cb_read(pa_stream *stream, size_t nbytes, void *iepair);
 	static void cb_stream_state(pa_stream *stream, void *entry);
