@@ -30,6 +30,7 @@ struct Entry
 	pa_channel_map m_PAChannelMap;
 	bool           m_Lock = true;
 	bool           m_Kill;
+	bool           m_Meter = true;
 
 	Entry(PAInterface *iface);
 	~Entry();

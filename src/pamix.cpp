@@ -143,7 +143,7 @@ void drawEntries(PAInterface *interface)
 		if (y + numChannels + 2 > (unsigned)LINES)
 			break;
 
-		if (it->second->m_Lock)
+		if (it->second->m_Meter && it->second->m_Lock)
 		{
 			generateMeter(y, 32, COLS - 33, vol, MAX_VOL);
 
@@ -152,7 +152,7 @@ void drawEntries(PAInterface *interface)
 				descstring.insert(0, SYM_ARROW);
 			mvprintw(y++, 1, descstring.c_str(), dB, vol);
 		}
-		else
+		else if (it->second->m_Meter)
 		{
 			for (uint32_t chan = 0; chan < numChannels; chan++)
 			{
@@ -172,7 +172,8 @@ void drawEntries(PAInterface *interface)
 		double peak = it->second->m_Peak;
 
 		mapMonitorLines[it->first] = y;
-		generateMeter(y++, 1, COLS - 2, peak, 1.0);
+		if (it->second->m_Meter)
+			generateMeter(y++, 1, COLS - 2, peak, 1.0);
 
 		if (isSelectedEntry)
 			attron(A_STANDOUT);
@@ -247,7 +248,8 @@ void drawMonitors(PAInterface *interface)
 		if (index >= skipEntries + numDisplayedEntries)
 			break;
 		uint32_t y = mapMonitorLines[it->first];
-		generateMeter(y, 1, COLS - 2, it->second->m_Peak, 1.0);
+		if (it->second->m_Meter)
+			generateMeter(y, 1, COLS - 2, it->second->m_Peak, 1.0);
 	}
 	refresh();
 }
