@@ -2,7 +2,11 @@
 
 #include <cstring>
 #include <iostream>
+#ifdef FEAT_UNICODE
+#include <ncursesw/ncurses.h>
+#else
 #include <ncurses.h>
+#endif
 #include <sstream>
 
 std::vector<std::pair<int, const char *>> Configuration::m_Keynames;

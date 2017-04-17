@@ -3,7 +3,8 @@
 void SinkInputEntry::update(const pa_sink_input_info *info)
 {
 	// general vars
-	m_Name         = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME);
+  const char* name = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME);
+	m_Name         = name != nullptr ? name : info->name;
 	m_Index        = info->index;
 	m_Mute         = info->mute;
 	m_PAVolume     = info->volume;

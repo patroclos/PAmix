@@ -4,7 +4,11 @@
 #include <configuration.hpp>
 #include <locale.h>
 #include <mutex>
+#ifdef FEAT_UNICODE
+#include <ncursesw/ncurses.h>
+#else
 #include <ncurses.h>
+#endif
 #include <queue>
 #include <signal.h>
 #include <string>
