@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([pamix], [1.2], [jenschjoshua@gmail.com])
+AC_INIT([pamix], [1.5], [jenschjoshua@gmail.com])
 AC_CONFIG_SRCDIR([include/entry.hpp])
 AC_CONFIG_AUX_DIR([tools])
 AC_CONFIG_HEADERS([config.h])
