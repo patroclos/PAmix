@@ -24,30 +24,20 @@
 # Building Manually: #
 ## Dependencies: #
 ### Build ##
-* autoconf 
-* autoconf-archive
-* pkg-config
-* make
+* cmake
 
 ### Runtime ##
 * PulseAudio
 * Ncurses
 
 
+```bash
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DWITH_UNICODE=1
+make
+sudo make install
+```
 
-## Autoconf Configuration ##
-Generate configure script by running `autoreconf -i` and then run `./configure` with your preferred options
-
-### Options ###
-`--disable-unicode` depends on ncurses instead of ncursesw and replaces unicode symbols with ascii
-
-## Building ##
-Run `make`
-
-## Installing ##
-Run `make install`
-
----
 # Configuration #
 Configure pamix and set keybindings using pamix.conf (see [**Configuration**](https://github.com/patroclos/PAmix/wiki/Configuration) for detailed instructions)
 
