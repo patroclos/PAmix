@@ -7,7 +7,7 @@ file(GLOB_RECURSE pamix_SRC
   "src/*.cpp")
 
 include_directories("include")
-link_libraries("pulse" "pthread" "RxCpp")
+link_libraries("pulse" "pthread")
 
 IF(WITH_UNICODE)
   link_libraries("ncursesw")
