@@ -1,9 +1,8 @@
 #include <entry.hpp>
 
-void SinkInputEntry::update(const pa_sink_input_info *info)
-{
+void SinkInputEntry::update(const pa_sink_input_info *info) {
 	// general vars
-  const char* name = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME);
+	const char *name = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_NAME);
 	m_Name         = name != nullptr ? name : info->name;
 	m_Index        = info->index;
 	m_Mute         = info->mute;
@@ -15,8 +14,7 @@ void SinkInputEntry::update(const pa_sink_input_info *info)
 	m_Device = info->sink;
 }
 
-void SinkInputEntry::setVolume(const int channel, const pa_volume_t volume)
-{
+void SinkInputEntry::setVolume(const int channel, const pa_volume_t volume) {
 	mainloop_lockguard lg(interface->getPAMainloop());
 
 	pa_cvolume *cvol = &m_PAVolume;
@@ -25,29 +23,28 @@ void SinkInputEntry::setVolume(const int channel, const pa_volume_t volume)
 	else
 		cvol->values[channel] = volume;
 
-	pa_operation *op = pa_context_set_sink_input_volume(interface->getPAContext(), m_Index, cvol, &PAInterface::cb_success, interface);
+	pa_operation *op = pa_context_set_sink_input_volume(interface->getPAContext(), m_Index, cvol,
+	                                                    &PAInterface::cb_success, interface);
 	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
 		pa_threaded_mainloop_wait(interface->getPAMainloop());
 	pa_operation_unref(op);
 }
 
-void SinkInputEntry::setMute(bool mute)
-{
+void SinkInputEntry::setMute(bool mute) {
 	mainloop_lockguard lg(interface->getPAMainloop());
-	pa_operation *     op = pa_context_set_sink_input_mute(interface->getPAContext(), m_Index, mute, &PAInterface::cb_success, interface);
+	pa_operation *op = pa_context_set_sink_input_mute(interface->getPAContext(), m_Index, mute, &PAInterface::cb_success,
+	                                                  interface);
 	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
 		pa_threaded_mainloop_wait(interface->getPAMainloop());
 	pa_operation_unref(op);
 }
 
-void SinkInputEntry::cycleSwitch(bool increment)
-{
+void SinkInputEntry::cycleSwitch(bool increment) {
 	iter_entry_t sink = interface->getSinks().find(m_Device);
 
 	if (increment)
 		sink++;
-	else
-	{
+	else {
 		if (sink == interface->getSinks().begin())
 			sink = std::next(sink, interface->getSinks().size() - 1);
 		else
@@ -57,26 +54,27 @@ void SinkInputEntry::cycleSwitch(bool increment)
 	if (sink == interface->getSinks().end())
 		sink = interface->getSinks().begin();
 
-	pa_operation *op = pa_context_move_sink_input_by_index(interface->getPAContext(), m_Index, sink->second->m_Index, &PAInterface::cb_success, interface);
+	pa_operation *op = pa_context_move_sink_input_by_index(interface->getPAContext(), m_Index, sink->second->m_Index,
+	                                                       &PAInterface::cb_success, interface);
 	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
 		pa_threaded_mainloop_wait(interface->getPAMainloop());
 	pa_operation_unref(op);
 }
 
-void SinkInputEntry::move(uint32_t idx)
-{
+void SinkInputEntry::move(uint32_t idx) {
 	mainloop_lockguard lg(interface->getPAMainloop());
-	pa_operation *     op = pa_context_move_sink_input_by_index(interface->getPAContext(), m_Index, idx, &PAInterface::cb_success, interface);
+	pa_operation *op = pa_context_move_sink_input_by_index(interface->getPAContext(), m_Index, idx,
+	                                                       &PAInterface::cb_success, interface);
 
 	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
 		pa_threaded_mainloop_wait(interface->getPAMainloop());
 	pa_operation_unref(op);
 }
 
-void SinkInputEntry::kill()
-{
+void SinkInputEntry::kill() {
 	mainloop_lockguard lg(interface->getPAMainloop());
-	pa_operation *     op = pa_context_kill_sink_input(interface->getPAContext(), m_Index, &PAInterface::cb_success, interface);
+	pa_operation *op = pa_context_kill_sink_input(interface->getPAContext(), m_Index, &PAInterface::cb_success,
+	                                              interface);
 
 	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
 		pa_threaded_mainloop_wait(interface->getPAMainloop());

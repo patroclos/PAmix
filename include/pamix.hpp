@@ -6,10 +6,11 @@
 #include <config.h>
 #endif
 
-struct UpdateData
-{
+struct UpdateData {
 	bool redrawAll;
+
 	UpdateData() = default;
+
 	UpdateData(bool redrawAll) { this->redrawAll = redrawAll; }
 };
 
@@ -35,20 +36,25 @@ struct UpdateData
 #endif
 
 void quit();
-void signal_update(bool all);
+
+void signal_update(bool all, bool threaded = false);
 
 void selectEntries(PAInterface *interfae, entry_type type);
 
 void set_volume(PAInterface *interface, double pct);
+
 void add_volume(PAInterface *interface, double pct);
 
 void cycle_switch(PAInterface *interface, bool inc);
 
 void set_mute(PAInterface *interface, bool mute);
+
 void toggle_mute(PAInterface *interface);
 
 void set_lock(PAInterface *interface, bool lock);
+
 void toggle_lock(PAInterface *interface);
 
 void select_next(PAInterface *interface, bool precise);
+
 void select_previous(PAInterface *interface, bool precise);

@@ -1,22 +1,17 @@
 #include <volumeutil.hpp>
 
-pa_cvolume *volume_pct_delta(pa_cvolume *volume, int channel, double pctDelta)
-{
+pa_cvolume *volume_pct_delta(pa_cvolume *volume, int channel, double pctDelta) {
 	int delta = round(pctDelta * PA_VOLUME_NORM);
 
 	pa_volume_t vol = channel == -1 ? pa_cvolume_avg(volume) : volume->values[channel];
-	if (delta > 0)
-	{
-		if (vol + delta > vol)
-		{
+	if (delta > 0) {
+		if (vol + delta > vol) {
 			if (vol + delta > PA_VOLUME_NORM * 1.5)
 				vol = PA_VOLUME_NORM * 1.5;
 			else
 				vol += delta;
 		}
-	}
-	else
-	{
+	} else {
 		if (vol + delta < vol)
 			vol += delta;
 		else
