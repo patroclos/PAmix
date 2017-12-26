@@ -5,16 +5,6 @@
 #include <queue>
 #include <csignal>
 
-#ifdef FEAT_UNICODE
-
-#include <ncursesw/ncurses.h>
-
-#else
-
-#include <ncurses.h>
-
-#endif
-
 // GLOBAL VARIABLES
 Configuration configuration;
 
@@ -470,7 +460,18 @@ void loadConfiguration() {
 	configuration.bind("0", "set-volume", "1.0");
 }
 
+void handleArguments(int argc, char **argv) {
+	for (int i = 1; i < argc; i++) {
+		std::string arg = argv[i];
+		if (arg == "--version") {
+			printf("PAmix v%s\n", GIT_VERSION);
+			exit(0);
+		}
+	}
+}
+
 int main(int argc, char **argv) {
+	handleArguments(argc, argv);
 	loadConfiguration();
 
 	setlocale(LC_ALL, "");

@@ -1,9 +1,6 @@
 #pragma once
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
+#include <pamix.hpp>
 #include <map>
 #include <memory>
 #include <pamix_functions.hpp>

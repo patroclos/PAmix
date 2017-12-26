@@ -1,10 +1,7 @@
 #pragma once
 
+#include <../config.hpp>
 #include <painterface.hpp>
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 struct UpdateData {
 	bool redrawAll;

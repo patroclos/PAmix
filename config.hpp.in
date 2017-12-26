@@ -1,0 +1,8 @@
+#pragma once
+#ifdef FEAT_UNICODE
+#include <${NCURSESW_H_INCLUDE}>
+#else
+#include <ncurses.h>
+#endif
+
+#define GIT_VERSION "${GIT_VERSION}"
