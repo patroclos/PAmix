@@ -354,10 +354,10 @@ pa_stream *_createMonitor(PAInterface *interface, uint32_t source, Entry *entry,
 	if (stream != (uint32_t) -1)
 		pa_stream_set_monitor_stream(s, stream);
 
-	std::pair<PAInterface *, Entry *> *pair = new std::pair<PAInterface *, Entry *>();
+	auto *pair = new std::pair<PAInterface *, Entry *>();
 	pair->first  = interface;
 	pair->second = entry;
-	interface->m_IEPairs.push_back(std::unique_ptr<std::pair<PAInterface *, Entry *>>(pair));
+	interface->m_IEPairs.emplace_back(std::unique_ptr<std::pair<PAInterface *, Entry *>>(pair));
 
 	pa_stream_set_read_callback(s, &PAInterface::cb_read, pair);
 	pa_stream_set_state_callback(s, &PAInterface::cb_stream_state, entry);

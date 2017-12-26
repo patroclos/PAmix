@@ -27,11 +27,11 @@ int Configuration::getKeycode(const std::string &name) {
 		for (int i = -1; i < KEY_MAX; i++) {
 			const char *r = keyname(i);
 			if (r)
-				m_Keynames.push_back(std::make_pair(i, r));
+				m_Keynames.emplace_back(i, r);
 		}
 	}
 	for (unsigned i = 0; i < m_Keynames.size(); i++)
-		if (!name.compare(m_Keynames[i].second))
+		if (name == m_Keynames[i].second)
 			return m_Keynames[i].first;
 	return -1;
 }
@@ -67,25 +67,25 @@ void Configuration::bind(const std::string &key, const std::string &cmd, const s
 	else if (!cmd.compare("select-tab")) {
 		int tab = 0;
 		sscanf(args.c_str(), "%d", &tab);
-		kbind.m_Function   = &pamix_select_tab;
+		kbind.m_Function = &pamix_select_tab;
 		kbind.m_Argument.i = tab;
 	} else if (!cmd.compare("select-next")) {
 		bool precise = !args.compare("channel");
-		kbind.m_Function   = &pamix_select_next;
+		kbind.m_Function = &pamix_select_next;
 		kbind.m_Argument.b = precise;
 	} else if (!cmd.compare("select-prev")) {
 		bool precise = !args.compare("channel");
-		kbind.m_Function   = &pamix_select_prev;
+		kbind.m_Function = &pamix_select_prev;
 		kbind.m_Argument.b = precise;
 	} else if (!cmd.compare("set-volume")) {
 		double value = 0.0;
 		sscanf(args.c_str(), "%lf", &value);
-		kbind.m_Function   = &pamix_set_volume;
+		kbind.m_Function = &pamix_set_volume;
 		kbind.m_Argument.d = value;
 	} else if (!cmd.compare("add-volume")) {
 		double delta = 0.0;
 		sscanf(args.c_str(), "%lf", &delta);
-		kbind.m_Function   = &pamix_add_volume;
+		kbind.m_Function = &pamix_add_volume;
 		kbind.m_Argument.d = delta;
 	} else if (!cmd.compare("cycle-next"))
 		kbind.m_Function = &pamix_cycle_next;
@@ -94,18 +94,18 @@ void Configuration::bind(const std::string &key, const std::string &cmd, const s
 	else if (!cmd.compare("toggle-lock"))
 		kbind.m_Function = &pamix_toggle_lock;
 	else if (!cmd.compare("set-lock")) {
-		bool lock = args.compare("0");
-		kbind.m_Function   = &pamix_set_lock;
+		bool lock = args.compare("0") != 0;
+		kbind.m_Function = &pamix_set_lock;
 		kbind.m_Argument.b = lock;
 	} else if (!cmd.compare("toggle-mute"))
 		kbind.m_Function = &pamix_toggle_mute;
 	else if (!cmd.compare("set-mute")) {
-		bool mute = args.compare("0");
-		kbind.m_Function   = &pamix_set_mute;
+		bool mute = args.compare("0") != 0;
+		kbind.m_Function = &pamix_set_mute;
 		kbind.m_Argument.b = mute;
 	}
 
-	m_Bindings[code].push_back(kbind);
+	m_Bindings[code].emplace_back(kbind);
 }
 
 void Configuration::unbind(const std::string &key) {
@@ -143,7 +143,7 @@ bool Configuration::loadFile(Configuration *config, const std::string &path) {
 	fclose(file);
 
 	std::istringstream stream(data);
-	std::string        line;
+	std::string line;
 
 	/*
 	 * parse text line by line
@@ -178,15 +178,15 @@ bool Configuration::loadFile(Configuration *config, const std::string &path) {
 			if (pos == std::string::npos)
 				continue;
 
-			std::string key  = sub.substr(0, pos);
-			std::string cmd  = sub.substr(pos + 1, sub.length() - pos - 1);
+			std::string key = sub.substr(0, pos);
+			std::string cmd = sub.substr(pos + 1, sub.length() - pos - 1);
 
 			// seperate command from arguments
 			std::string args;
-			size_t      spos = cmd.find(' ');
+			size_t spos = cmd.find(' ');
 			if (spos != std::string::npos) {
 				args = cmd.substr(spos + 1, cmd.length() - spos - 1);
-				cmd  = cmd.substr(0, spos);
+				cmd = cmd.substr(0, spos);
 			}
 
 			config->bind(key, cmd, args);

@@ -12,7 +12,7 @@ void SinkEntry::update(const pa_sink_info *info) {
 	m_Ports.clear();
 	m_Port = -1;
 	for (unsigned i = 0; i < info->n_ports; i++) {
-		m_Ports.push_back(info->ports[i]->name);
+		m_Ports.emplace_back(info->ports[i]->name);
 		if (info->active_port == info->ports[i])
 			m_Port = i;
 	}

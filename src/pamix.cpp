@@ -1,5 +1,6 @@
 #include <pamix.hpp>
 
+#include <unistd.h>
 #include <configuration.hpp>
 #include <condition_variable>
 #include <queue>
@@ -188,7 +189,7 @@ void drawEntries(PAInterface *interface) {
 		mvprintw(y++, 1, appname.c_str());
 		if (isSelectedEntry)
 			attroff(A_STANDOUT);
-		bool muted = entryIter->second->m_Mute || avgvol == PA_VOLUME_MUTED;
+		bool muted = entryType != ENTRY_CARDS && (entryIter->second->m_Mute || avgvol == PA_VOLUME_MUTED);
 		printw(" %s %s", muted ? SYM_MUTE : "", entryIter->second->m_Lock ? SYM_LOCK : "");
 
 		//append entryDisplayName
@@ -364,8 +365,13 @@ void toggle_lock(PAInterface *interface) {
 
 void inputThread(PAInterface *) {
 	while (running) {
+		screenMutex.lock();
 		int ch = getch();
-		configuration.pressKey(ch);
+		screenMutex.unlock();
+		if (ch != ERR && ch != KEY_RESIZE && ch != KEY_MOUSE) {
+			configuration.pressKey(ch);
+		}
+		usleep(2000);
 	}
 }
 
@@ -382,16 +388,9 @@ void sig_handle_resize(int) {
 
 void init_colors() {
 	start_color();
-#ifdef HAVE_USE_DEFAULT_COLORS
-	use_default_colors();
-	init_pair(1, COLOR_GREEN, -1);
-	init_pair(2, COLOR_YELLOW, -1);
-	init_pair(3, COLOR_RED, -1);
-#else
 	init_pair(1, COLOR_GREEN, 0);
 	init_pair(2, COLOR_YELLOW, 0);
 	init_pair(3, COLOR_RED, 0);
-#endif
 }
 
 void sig_handle(int) {
@@ -477,6 +476,7 @@ int main(int argc, char **argv) {
 	setlocale(LC_ALL, "");
 	initscr();
 	init_colors();
+	nodelay(stdscr, true);
 	curs_set(0);
 	keypad(stdscr, true);
 	meta(stdscr, true);
