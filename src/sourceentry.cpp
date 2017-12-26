@@ -1,22 +1,23 @@
 #include <entry.hpp>
 
 void SourceEntry::update(const pa_source_info *info) {
-	m_Name         = info->description;
-	m_Index        = info->index;
-	m_Mute         = info->mute;
+	m_Name = info->description;
+	m_Index = info->index;
+	m_Mute = info->mute != 0;
 	m_MonitorIndex = m_Index;
-	m_PAVolume     = info->volume;
+	m_PAVolume = info->volume;
 	m_PAChannelMap = info->channel_map;
-	m_Kill         = false;
+	m_Kill = false;
 
 	m_Ports.clear();
 	m_Port = -1;
 	for (unsigned i = 0; i < info->n_ports; i++) {
-		m_Ports.emplace_back(info->ports[i]->name);
-		if (info->active_port == info->ports[i])
+		auto port = info->ports[i];
+		m_Ports.emplace_back(port->name, port->description);
+		if (info->active_port == port)
 			m_Port = i;
 	}
-	m_State         = info->state;
+	m_State = info->state;
 }
 
 void SourceEntry::setVolume(const int channel, const pa_volume_t volume) {
@@ -47,11 +48,12 @@ void SourceEntry::setMute(bool mute) {
 
 void SourceEntry::cycleSwitch(bool increment) {
 	int delta = increment ? 1 : -1;
-	if (!m_Ports.size())
+	if (m_Ports.empty())
 		return;
-	m_Port = (m_Port + delta) % m_Ports.size();
+	m_Port = (m_Port + delta) % (unsigned) m_Ports.size();
 
-	pa_operation *op = pa_context_set_source_port_by_index(interface->getPAContext(), m_Index, m_Ports[m_Port].c_str(),
+	pa_operation *op = pa_context_set_source_port_by_index(interface->getPAContext(), m_Index,
+	                                                       m_Ports[m_Port].name.c_str(),
 	                                                       &PAInterface::cb_success, interface);
 	while (pa_operation_get_state(op) == PA_OPERATION_RUNNING)
 		pa_threaded_mainloop_wait(interface->getPAMainloop());

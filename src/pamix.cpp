@@ -201,13 +201,15 @@ void drawEntries(PAInterface *interface) {
 		std::string entryDisplayName;
 		switch (entryType) {
 			case ENTRY_SINK:
-				if (entryIter->second)
-					entryDisplayName = ((SinkEntry *) entryIter->second.get())->getPort();
+			case ENTRY_SOURCE: {
+				auto deviceEntry = ((DeviceEntry *) entryIter->second.get());
+				if (deviceEntry != nullptr) {
+					const DeviceEntry::DeviceProfile *deviceProfile = deviceEntry->getPortProfile();
+					if (deviceProfile != nullptr)
+						entryDisplayName = deviceProfile->description.empty() ? deviceProfile->name : deviceProfile->description;
+				}
 				break;
-			case ENTRY_SOURCE:
-				if (entryIter->second)
-					entryDisplayName = ((SourceEntry *) entryIter->second.get())->getPort();
-				break;
+			}
 			case ENTRY_SINKINPUT:
 				if (entryIter->second && interface->getSinks()[((SinkInputEntry *) entryIter->second.get())->m_Device])
 					entryDisplayName = interface->getSinks()[((SinkInputEntry *) entryIter->second.get())->m_Device]->m_Name;

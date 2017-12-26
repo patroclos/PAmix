@@ -3,3 +3,4 @@ build/
 .idea
 cmake-build-*
 config.hpp
+man/pamix.1

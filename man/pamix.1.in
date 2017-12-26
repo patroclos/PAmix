@@ -1,11 +1,18 @@
 .\" this is the manpage of the pamix pulseaudio ncurses mixer
-.TH pamix 1 "05 Sep 2016" "V1.5" "pamix man page"
+.TH pamix 1 "05 Sep 2016" "V${GIT_VERSION}" "pamix man page"
 
-.SH SYONPSIS
-pamix
+.SH SYNOPSIS
+.\" Commandline arguments
+.B pamix
+.RB [\| \--version \|]
 
 .SH DESCRIPTION
 This is a pavucontrol inspired ncurses based pulseaudio mixer for the commandline
+
+.SH OPTIONS
+.SS "General options"
+.BR \--version
+print build version
 
 .SH CONFIGURATION
 pamix is configured using a file called pamix.conf inside the $XDG_CONFIG_HOME or $XDG_CONFIG_DIRS directories or their default values, should they not be set.

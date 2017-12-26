@@ -75,11 +75,18 @@ struct Entry {
 };
 
 struct DeviceEntry : public Entry {
-	int m_Port;
-	std::vector<std::string> m_Ports;
+	struct DeviceProfile {
+		std::string name;
+		std::string description;
 
-	DeviceEntry(PAInterface *iface)
-			: Entry(iface) {};
+		DeviceProfile(std::string name, std::string description) : name(name), description(description) {}
+	};
+
+	int m_Port;
+	std::vector<DeviceProfile> m_Ports;
+
+	DeviceEntry(PAInterface *paInterface)
+			: Entry(paInterface) {};
 
 	// general methods
 	virtual void setVolume(const int channel, const pa_volume_t volume) = 0;
@@ -88,7 +95,7 @@ struct DeviceEntry : public Entry {
 
 	virtual void cycleSwitch(bool increment) = 0;
 
-	virtual std::string getPort() { return m_Port > -1 ? m_Ports[m_Port] : ""; }
+	virtual const DeviceProfile *getPortProfile() const { return m_Port > -1 ? &m_Ports[m_Port] : nullptr; }
 
 	virtual void setPort(const char *port) = 0;
 };

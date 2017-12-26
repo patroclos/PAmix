@@ -184,11 +184,15 @@ void pamix_ui::drawHeader() const {
 
 std::string pamix_ui::getEntryDisplayName(Entry *entry) {
 	switch (m_EntriesType) {
-		case ENTRY_SINK: {
-			return ((SinkEntry *) entry)->getPort();
-		}
+		case ENTRY_SINK:
 		case ENTRY_SOURCE: {
-			return ((SourceEntry *) entry)->getPort();
+			auto deviceEntry = ((DeviceEntry *) entry);
+			if (deviceEntry != nullptr) {
+				const DeviceEntry::DeviceProfile *deviceProfile = deviceEntry->getPortProfile();
+				if (deviceProfile != nullptr)
+					return deviceProfile->description.empty() ? deviceProfile->name : deviceProfile->description;
+			}
+			break;
 		}
 		case ENTRY_SINKINPUT: {
 			auto sinkInput = (SinkInputEntry *) entry;
