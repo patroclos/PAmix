@@ -4,6 +4,7 @@
 #include <pulse/pulseaudio.h>
 #include <string>
 #include <vector>
+#include <map>
 #include <volumeutil.hpp>
 
 class PAInterface;
@@ -17,19 +18,27 @@ enum entry_type {
 	ENTRY_COUNT
 };
 
+static std::map<entry_type, const char *> entryTypeNames = {
+		{ENTRY_SINK,         "Output Devices"},
+		{ENTRY_SINKINPUT,    "Playback"},
+		{ENTRY_SOURCE,       "Input Devices"},
+		{ENTRY_SOURCEOUTPUT, "Recording"},
+		{ENTRY_CARDS,        "Cards"}
+};
+
 struct Entry {
 	PAInterface *interface;
 	std::string m_Name;
-	uint32_t    m_Index;
-	double      m_Peak = 0;
-	pa_stream *m_Monitor   = nullptr;
-	uint32_t       m_MonitorIndex;
-	bool           m_Mute;
-	pa_cvolume     m_PAVolume;
+	uint32_t m_Index;
+	double m_Peak = 0;
+	pa_stream *m_Monitor = nullptr;
+	uint32_t m_MonitorIndex;
+	bool m_Mute;
+	pa_cvolume m_PAVolume;
 	pa_channel_map m_PAChannelMap;
-	bool           m_Lock  = true;
-	bool           m_Kill;
-	bool           m_Meter = true;
+	bool m_Lock = true;
+	bool m_Kill;
+	bool m_Meter = true;
 
 	Entry(PAInterface *iface);
 
@@ -66,7 +75,7 @@ struct Entry {
 };
 
 struct DeviceEntry : public Entry {
-	int                      m_Port;
+	int m_Port;
 	std::vector<std::string> m_Ports;
 
 	DeviceEntry(PAInterface *iface)
@@ -184,7 +193,7 @@ struct CardEntry : public Entry {
 				: name(profile->name), description(profile->description) {};
 	};
 
-	int                      m_Profile;
+	int m_Profile;
 	std::vector<CardProfile> m_Profiles;
 
 	void update(const pa_card_info *info);

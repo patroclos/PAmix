@@ -1,13 +1,13 @@
 #include <entry.hpp>
 
 void SinkEntry::update(const pa_sink_info *info) {
-	m_Name         = info->description;
-	m_Index        = info->index;
-	m_Mute         = info->mute;
+	m_Name = info->description;
+	m_Index = info->index;
+	m_Mute = info->mute;
 	m_MonitorIndex = info->monitor_source;
-	m_PAVolume     = info->volume;
+	m_PAVolume = info->volume;
 	m_PAChannelMap = info->channel_map;
-	m_Kill         = false;
+	m_Kill = false;
 
 	m_Ports.clear();
 	m_Port = -1;
@@ -16,7 +16,7 @@ void SinkEntry::update(const pa_sink_info *info) {
 		if (info->active_port == info->ports[i])
 			m_Port = i;
 	}
-	m_State         = info->state;
+	m_State = info->state;
 }
 
 void SinkEntry::setVolume(const int channel, const pa_volume_t volume) {
