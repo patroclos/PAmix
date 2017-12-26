@@ -11,7 +11,7 @@ struct UpdateData {
 
 	UpdateData() = default;
 
-	UpdateData(bool redrawAll) { this->redrawAll = redrawAll; }
+	explicit UpdateData(bool redrawAll) { this->redrawAll = redrawAll; }
 };
 
 #define DECAY_STEP 0.04
@@ -39,7 +39,7 @@ void quit();
 
 void signal_update(bool all, bool threaded = false);
 
-void selectEntries(PAInterface *interfae, entry_type type);
+void selectEntries(PAInterface *interface, entry_type type);
 
 void set_volume(PAInterface *interface, double pct);
 

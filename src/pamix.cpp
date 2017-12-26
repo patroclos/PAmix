@@ -27,17 +27,25 @@ std::map<uint32_t, std::unique_ptr<Entry>> *entryMap = nullptr;
 entry_type                                 entryType;
 
 // scrolling
-uint32_t skipEntries         = 0;
+uint32_t numSkippedEntries   = 0;
 uint32_t numDisplayedEntries = 0;
 
-std::map<uint32_t, uint32_t> mapMonitorLines;
-std::map<uint32_t, uint8_t>  mapIndexSize;
+std::map<uint32_t, uint32_t> monitorVolumeBarLineNum;
+std::map<uint32_t, uint8_t>  entrySizes;
 
 // sync main and callback threads
 std::mutex              updMutex;
 std::condition_variable cv;
 
 std::queue<UpdateData> updateDataQ;
+
+std::map<unsigned, const char *> entryTypeNames = {
+		{ENTRY_SINK,         "Output Devices"},
+		{ENTRY_SINKINPUT,    "Playback"},
+		{ENTRY_SOURCE,       "Input Devices"},
+		{ENTRY_SOURCEOUTPUT, "Recording"},
+		{ENTRY_CARDS,        "Cards"},
+};
 
 void quit() {
 	running = false;
@@ -83,13 +91,17 @@ void selectEntries(PAInterface *interface, entry_type type) {
 }
 
 void generateMeter(int y, int x, int width, double pct, const double maxvol) {
-	int                 segments = width - 2;
+
+	int segments = width - 2;
+
 	if (segments <= 0)
 		return;
+
 	if (pct < 0)
 		pct = 0;
 	else if (pct > maxvol)
 		pct = maxvol;
+
 	auto filled = (unsigned) (pct / maxvol * (double) segments);
 	if (filled > segments)
 		filled = (unsigned) segments;
@@ -116,8 +128,8 @@ void generateMeter(int y, int x, int width, double pct, const double maxvol) {
 }
 
 void drawEntries(PAInterface *interface) {
-	std::lock_guard<std::mutex> modlg(interface->m_ModifyMutex);
-	std::lock_guard<std::mutex> lg(screenMutex);
+	std::lock_guard<std::mutex> modifyLockGuard(interface->m_ModifyMutex);
+	std::lock_guard<std::mutex> screenLockGuard(screenMutex);
 
 	if (selectedEntry > entryMap->size() - 1) {
 		selectedEntry   = (unsigned) (entryMap->size() - 1);
@@ -127,22 +139,16 @@ void drawEntries(PAInterface *interface) {
 	clear();
 
 	mvprintw(0, 1, "%d/%d", entryMap->empty() ? 0 : selectedEntry + 1, entryMap->size());
-	const char *entryname =
-			           entryType == ENTRY_SINK ? "Output Devices" :
-			           entryType == ENTRY_SOURCE ? "Input Devices" :
-			           entryType == ENTRY_SINKINPUT ? "Playback" :
-			           entryType == ENTRY_SOURCEOUTPUT ? "Recording" :
-			           "Cards";
-	mvprintw(0, 10, "%s", entryname);
+	mvprintw(0, 10, "%s", entryTypeNames[entryType]);
 
 	unsigned y     = 2;
 	unsigned index = 0;
 
 	auto entryIter = entryMap->begin();
 	for (; entryIter != entryMap->end(); entryIter++, index++)
-		mapIndexSize[index] = entryIter->second->m_Lock ? (char) 1 : entryIter->second->m_PAVolume.channels;
+		entrySizes[index] = entryIter->second->m_Lock ? (char) 1 : entryIter->second->m_PAVolume.channels;
 
-	for (entryIter = std::next(entryMap->begin(), skipEntries), index = skipEntries;
+	for (entryIter = std::next(entryMap->begin(), numSkippedEntries), index = numSkippedEntries;
 	     entryIter != entryMap->end(); entryIter++, index++) {
 		std::string appname = entryIter->second ? entryIter->second->m_Name : "";
 		pa_volume_t avgvol  = pa_cvolume_avg(&entryIter->second->m_PAVolume);
@@ -152,6 +158,7 @@ void drawEntries(PAInterface *interface) {
 		bool    isSelectedEntry = index == selectedEntry;
 		uint8_t numChannels     = entryIter->second->m_Lock ? (char) 1 : entryIter->second->m_PAVolume.channels;
 
+		// break if not enough space
 		if (y + numChannels + 2 > (unsigned) LINES)
 			break;
 
@@ -164,22 +171,28 @@ void drawEntries(PAInterface *interface) {
 			mvprintw(y++, 1, descstring.c_str(), dB, vol);
 		} else if (entryIter->second->m_Meter) {
 			for (uint32_t chan = 0; chan < numChannels; chan++) {
-				bool        isSelChannel = isSelectedEntry && chan == selectedChannel;
-				std::string channame     = pa_channel_position_to_pretty_string(entryIter->second->m_PAChannelMap.map[chan]);
-				double      cdB          = pa_sw_volume_to_dB(entryIter->second->m_PAVolume.values[chan]);
-				double      cvol         = entryIter->second->m_PAVolume.values[chan] / (double) PA_VOLUME_NORM;
-				generateMeter(y, 32, COLS - 33, cvol, MAX_VOL);
-				std::string descstring = "%.*s  %.2fdB (%.2f)";
-				if (isSelChannel)
-					descstring.insert(0, SYM_ARROW);
+				std::string channelDescriptionTemplate = "%.*s  %.2fdB (%.2f)";
 
-				mvprintw(y++, 1, descstring.c_str(), isSelChannel ? 13 : 15, channame.c_str(), cdB, cvol);
+				bool                  isSelChannel      = isSelectedEntry && chan == selectedChannel;
+				double                volumeDecibel     = pa_sw_volume_to_dB(entryIter->second->m_PAVolume.values[chan]);
+				double                volumePercent     = entryIter->second->m_PAVolume.values[chan] / (double) PA_VOLUME_NORM;
+				pa_channel_position_t channelPosition   = entryIter->second->m_PAChannelMap.map[chan];
+				std::string           channelPrettyName = pa_channel_position_to_pretty_string(channelPosition);
+
+				generateMeter(y, 32, COLS - 33, volumePercent, MAX_VOL);
+
+				if (isSelChannel)
+					channelDescriptionTemplate.insert(0, SYM_ARROW);
+
+				mvprintw(y++, 1, channelDescriptionTemplate.c_str(),
+				         isSelChannel ? 13 : 15, channelPrettyName.c_str(),
+				         volumeDecibel, volumePercent);
 			}
 		}
 
 		double peak = entryIter->second->m_Peak;
 
-		mapMonitorLines[entryIter->first] = y;
+		monitorVolumeBarLineNum[entryIter->first] = y;
 		if (entryIter->second->m_Meter)
 			generateMeter(y++, 1, COLS - 2, peak, 1.0);
 
@@ -196,50 +209,50 @@ void drawEntries(PAInterface *interface) {
 		bool muted = entryIter->second->m_Mute || avgvol == PA_VOLUME_MUTED;
 		printw(" %s %s", muted ? SYM_MUTE : "", entryIter->second->m_Lock ? SYM_LOCK : "");
 
-		//append sinkname
+		//append entryDisplayName
 		int      px    = 0, py = 0;
 		unsigned space = 0;
 		getyx(stdscr, py, px);
 		space = (unsigned) COLS - px - 3;
 
-		std::string sinkname;
+		std::string entryDisplayName;
 		switch (entryType) {
 			case ENTRY_SINK:
 				if (entryIter->second)
-					sinkname = ((SinkEntry *) entryIter->second.get())->getPort();
+					entryDisplayName = ((SinkEntry *) entryIter->second.get())->getPort();
 				break;
 			case ENTRY_SOURCE:
 				if (entryIter->second)
-					sinkname = ((SourceEntry *) entryIter->second.get())->getPort();
+					entryDisplayName = ((SourceEntry *) entryIter->second.get())->getPort();
 				break;
 			case ENTRY_SINKINPUT:
 				if (entryIter->second && interface->getSinks()[((SinkInputEntry *) entryIter->second.get())->m_Device])
-					sinkname = interface->getSinks()[((SinkInputEntry *) entryIter->second.get())->m_Device]->m_Name;
+					entryDisplayName = interface->getSinks()[((SinkInputEntry *) entryIter->second.get())->m_Device]->m_Name;
 				break;
 			case ENTRY_SOURCEOUTPUT:
 				if (entryIter->second && interface->getSources()[((SourceOutputEntry *) entryIter->second.get())->m_Device])
-					sinkname = interface->getSources()[((SourceOutputEntry *) entryIter->second.get())->m_Device]->m_Name;
+					entryDisplayName = interface->getSources()[((SourceOutputEntry *) entryIter->second.get())->m_Device]->m_Name;
 				break;
 			case ENTRY_CARDS:
 				if (entryIter->second)
-					sinkname = ((CardEntry *) entryIter->second.get())->m_Profiles[((CardEntry *) entryIter->second.get())->m_Profile].description;
+					entryDisplayName = ((CardEntry *) entryIter->second.get())->m_Profiles[((CardEntry *) entryIter->second.get())->m_Profile].description;
 				break;
 			default:
 				break;
 		}
-		if (space < sinkname.size()) {
-			sinkname = sinkname.substr(0, space - 2);
-			sinkname.append("..");
+		if (space < entryDisplayName.size()) {
+			entryDisplayName = entryDisplayName.substr(0, space - 2);
+			entryDisplayName.append("..");
 			space = 0;
 		} else {
-			space -= sinkname.size();
+			space -= entryDisplayName.size();
 		}
-		mvprintw(py, px + space + 1, sinkname.c_str());
+		mvprintw(py, px + space + 1, entryDisplayName.c_str());
 
 		y += 1;
 	}
 
-	numDisplayedEntries = index - skipEntries;
+	numDisplayedEntries = index - numSkippedEntries;
 
 	refresh();
 }
@@ -247,12 +260,12 @@ void drawEntries(PAInterface *interface) {
 void drawMonitors(PAInterface *interface) {
 	std::lock_guard<std::mutex> lg(screenMutex);
 	std::lock_guard<std::mutex> modlg(interface->m_ModifyMutex);
-	auto                        it    = std::next(entryMap->begin(), skipEntries);
+	auto                        it    = std::next(entryMap->begin(), numSkippedEntries);
 	uint32_t                    index = 0;
 	for (; it != entryMap->end(); it++, index++) {
-		if (index >= skipEntries + numDisplayedEntries)
+		if (index >= numSkippedEntries + numDisplayedEntries)
 			break;
-		uint32_t y = mapMonitorLines[it->first];
+		uint32_t y = monitorVolumeBarLineNum[it->first];
 		if (it->second->m_Meter)
 			generateMeter(y, 1, COLS - 2, it->second->m_Peak, 1.0);
 	}
@@ -299,23 +312,23 @@ void toggle_mute(PAInterface *interface) {
 void adjustDisplay() {
 	if (!entryMap->empty())
 		return;
-	if (selectedEntry >= skipEntries && selectedEntry < skipEntries + numDisplayedEntries)
+	if (selectedEntry >= numSkippedEntries && selectedEntry < numSkippedEntries + numDisplayedEntries)
 		return;
-	if (selectedEntry < skipEntries) {
+	if (selectedEntry < numSkippedEntries) {
 		// scroll up until selected is at top
-		skipEntries = selectedEntry;
+		numSkippedEntries = selectedEntry;
 	} else {
 		// scroll down until selected is at bottom
 		uint32_t linesToFree = 0;
-		uint32_t idx         = skipEntries + numDisplayedEntries;
+		uint32_t idx         = numSkippedEntries + numDisplayedEntries;
 		for (; idx <= selectedEntry; idx++)
-			linesToFree += mapIndexSize[idx] + 2;
+			linesToFree += entrySizes[idx] + 2;
 
 		uint32_t linesFreed = 0;
-		idx         = skipEntries;
+		idx               = numSkippedEntries;
 		while (linesFreed < linesToFree)
-			linesFreed += mapIndexSize[idx++] + 2;
-		skipEntries = idx;
+			linesFreed += entrySizes[idx++] + 2;
+		numSkippedEntries = idx;
 	}
 }
 
