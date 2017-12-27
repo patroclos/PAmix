@@ -31,8 +31,6 @@ typedef uint32_t pai_subscription_type_t;
 
 typedef void (*pai_subscription_cb)(PAInterface *, const pai_subscription_type_t);
 
-typedef std::map<uint32_t, std::unique_ptr<Entry>>::iterator iter_entry_t;
-
 class PAInterface {
 private:
 	bool m_Autospawn;
@@ -40,7 +38,7 @@ private:
 	const char *m_ContextName;
 	pa_threaded_mainloop *m_Mainloop;
 	pa_mainloop_api *m_MainloopApi;
-	pa_context      *m_Context;
+	pa_context *m_Context;
 
 	std::map<uint32_t, std::unique_ptr<Entry>> m_Sinks;
 	std::map<uint32_t, std::unique_ptr<Entry>> m_Sources;

@@ -10,7 +10,7 @@ mainloop_lockguard::~mainloop_lockguard() {
 }
 
 PAInterface::PAInterface(const char *context_name)
-		: m_Autospawn(false), m_ContextName(context_name), m_Mainloop(0), m_MainloopApi(0), m_Context() {
+		: m_Autospawn(false), m_ContextName(context_name), m_Mainloop(nullptr), m_MainloopApi(nullptr), m_Context() {
 }
 
 PAInterface::~PAInterface() {
@@ -40,11 +40,11 @@ void PAInterface::cb_context_state(pa_context *context, void *interface) {
 		((PAInterface *) interface)->m_Context = nullptr;
 }
 
-void PAInterface::cb_context_drain_complete(pa_context *context, void *null) {
+void PAInterface::cb_context_drain_complete(pa_context *context, void *) {
 	pa_context_disconnect(context);
 }
 
-void PAInterface::cb_success(pa_context *context, int success, void *interface) {
+void PAInterface::cb_success(pa_context *, int, void *interface) {
 	PAInterface::signal_mainloop((PAInterface *) interface);
 }
 
@@ -65,9 +65,8 @@ void PAInterface::_updatethread(pai_subscription_type_t paisubtype, pa_subscript
 	interface->notifySubscription(paisubtype);
 }
 
-void PAInterface::cb_subscription_event(pa_context *context, pa_subscription_event_type_t type, uint32_t idx,
-                                        void *interface) {
-	pai_subscription_type_t paisubtype = 0x0U;
+void PAInterface::cb_subscription_event(pa_context *, pa_subscription_event_type_t type, uint32_t, void *interface) {
+	pai_subscription_type_t paisubtype;
 	if (pa_subscription_match_flags(
 			PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SOURCE | PA_SUBSCRIPTION_MASK_SINK_INPUT |
 			PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT | PA_SUBSCRIPTION_MASK_CARD, type)) {
@@ -80,7 +79,7 @@ void PAInterface::cb_subscription_event(pa_context *context, pa_subscription_eve
 	updthread.detach();
 }
 
-void PAInterface::cb_sink_info(pa_context *context, const pa_sink_info *info, int eol, void *interface) {
+void PAInterface::cb_sink_info(pa_context *, const pa_sink_info *info, int eol, void *interface) {
 	if (!eol) {
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *) interface)->m_Sinks;
 
@@ -92,10 +91,10 @@ void PAInterface::cb_sink_info(pa_context *context, const pa_sink_info *info, in
 		PAInterface::signal_mainloop((PAInterface *) interface);
 }
 
-void PAInterface::cb_source_info(pa_context *context, const pa_source_info *info, int eol, void *interface) {
+void PAInterface::cb_source_info(pa_context *, const pa_source_info *info, int eol, void *interface) {
 	if (!eol) {
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *) interface)->m_Sources;
-		std::lock_guard<std::mutex>                lg(((PAInterface *) interface)->m_ModifyMutex);
+		std::lock_guard<std::mutex> lg(((PAInterface *) interface)->m_ModifyMutex);
 		if (!map.count(info->index) || !map[info->index])
 			map[info->index] = std::unique_ptr<Entry>(new SourceEntry((PAInterface *) interface));
 		map[info->index]->update(info);
@@ -103,7 +102,7 @@ void PAInterface::cb_source_info(pa_context *context, const pa_source_info *info
 		PAInterface::signal_mainloop((PAInterface *) interface);
 }
 
-void PAInterface::cb_sink_input_info(pa_context *context, const pa_sink_input_info *info, int eol, void *interface) {
+void PAInterface::cb_sink_input_info(pa_context *, const pa_sink_input_info *info, int eol, void *interface) {
 	if (!eol) {
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *) interface)->m_SinkInputs;
 
@@ -116,25 +115,25 @@ void PAInterface::cb_sink_input_info(pa_context *context, const pa_sink_input_in
 }
 
 void
-PAInterface::cb_source_output_info(pa_context *context, const pa_source_output_info *info, int eol, void *interface) {
+PAInterface::cb_source_output_info(pa_context *, const pa_source_output_info *info, int eol, void *interface) {
 	if (!eol) {
-		const char                                 *appid = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_ID);
+		const char *appid = pa_proplist_gets(info->proplist, PA_PROP_APPLICATION_ID);
 		if (appid) {
 			if (strcmp(appid, "pamix") == 0) {
 				const pa_cvolume *cv = &info->volume;
 				if (cv->channels == 1 && cv->values[0] != PA_VOLUME_NORM) {
-					PAInterface *iface = (PAInterface *) interface;
-					pa_cvolume  cvol;
+					auto *iface = (PAInterface *) interface;
+					pa_cvolume cvol{};
 					pa_cvolume_set(&cvol, 1, PA_VOLUME_NORM);
 					pa_context_set_source_output_volume(iface->getPAContext(), info->index, &cvol, nullptr, nullptr);
 				}
 				return;
 			}
-			if (strcmp(appid, "org.PulseAudio.pavucontrol"))
+			if (strcmp(appid, "org.PulseAudio.pavucontrol") != 0)
 				return;
 		}
-		std::map<uint32_t, std::unique_ptr<Entry>> &map   = ((PAInterface *) interface)->m_SourceOutputs;
-		std::lock_guard<std::mutex>                lg(((PAInterface *) interface)->m_ModifyMutex);
+		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *) interface)->m_SourceOutputs;
+		std::lock_guard<std::mutex> lg(((PAInterface *) interface)->m_ModifyMutex);
 		if (!map.count(info->index) || !map[info->index])
 			map[info->index] = std::unique_ptr<Entry>(new SourceOutputEntry((PAInterface *) interface));
 		map[info->index]->update(info);
@@ -142,7 +141,7 @@ PAInterface::cb_source_output_info(pa_context *context, const pa_source_output_i
 		PAInterface::signal_mainloop((PAInterface *) interface);
 }
 
-void PAInterface::cb_card_info(pa_context *context, const pa_card_info *info, int eol, void *interface) {
+void PAInterface::cb_card_info(pa_context *, const pa_card_info *info, int eol, void *interface) {
 	if (!eol) {
 		std::map<uint32_t, std::unique_ptr<Entry>> &map = ((PAInterface *) interface)->m_Cards;
 
@@ -155,13 +154,13 @@ void PAInterface::cb_card_info(pa_context *context, const pa_card_info *info, in
 }
 
 void PAInterface::cb_read(pa_stream *stream, size_t nbytes, void *iepair) {
-	std::pair<PAInterface *, Entry *> *pair = (std::pair<PAInterface *, Entry *> *) (iepair);
+	auto *pair = (std::pair<PAInterface *, Entry *> *) (iepair);
 
 	if (!pair->second || !pair->first->m_Context)
 		return;
 
 	const void *data;
-	float      v;
+	float v;
 	if (pa_stream_peek(stream, &data, &nbytes) < 0)
 		return;
 
@@ -199,14 +198,14 @@ void __updateEntries(PAInterface *interface, std::map<uint32_t, std::unique_ptr<
 
 	{
 		std::lock_guard<std::mutex> mlg(interface->m_ModifyMutex);
-		for (iter_entry_t           it = map.begin(); it != map.end();)
+		for (auto it = map.begin(); it != map.end();)
 			if (it->second)
 				it++->second->m_Kill = true;
 			else
 				it = map.erase(it);
 	}
 
-	pa_operation *infooper         = nullptr;
+	pa_operation *infooper = nullptr;
 	switch (entrytype) {
 		case ENTRY_SINK:
 			infooper = pa_context_get_sink_info_list(interface->getPAContext(), &PAInterface::cb_sink_info, interface);
@@ -235,19 +234,19 @@ void __updateEntries(PAInterface *interface, std::map<uint32_t, std::unique_ptr<
 	pa_operation_unref(infooper);
 
 	std::lock_guard<std::mutex> modlg(interface->m_ModifyMutex);
-	for (iter_entry_t           it = map.begin(); it != map.end();) {
+	for (auto it = map.begin(); it != map.end();) {
 		if (!it->second) {
 			it = map.erase(it);
 			continue;
 		}
 		if (it->second->m_Kill) {
-			for (std::vector<std::unique_ptr<std::pair<PAInterface *, Entry *>>>::iterator pairit = interface->m_IEPairs.begin();
-			     pairit != interface->m_IEPairs.end();) {
-				if ((*pairit)->second == it->second.get()) {
-					(*pairit)->second = nullptr;
+			for (auto pairIterator = interface->m_IEPairs.begin();
+			     pairIterator != interface->m_IEPairs.end();) {
+				if ((*pairIterator)->second == it->second.get()) {
+					(*pairIterator)->second = nullptr;
 					break;
 				}
-				pairit++;
+				pairIterator++;
 			}
 			it = map.erase(it);
 		} else {
@@ -288,7 +287,7 @@ bool PAInterface::connect() {
 	pa_proplist *plist = pa_proplist_new();
 	pa_proplist_sets(plist, PA_PROP_APPLICATION_ID, m_ContextName);
 	pa_proplist_sets(plist, PA_PROP_APPLICATION_NAME, m_ContextName);
-	m_Context = pa_context_new_with_proplist(m_MainloopApi, NULL, plist);
+	m_Context = pa_context_new_with_proplist(m_MainloopApi, nullptr, plist);
 	pa_proplist_free(plist);
 
 	assert(m_Context);
@@ -299,7 +298,7 @@ bool PAInterface::connect() {
 	if (pa_threaded_mainloop_start(m_Mainloop))
 		return false;
 	pa_context_flags flags = m_Autospawn ? PA_CONTEXT_NOFLAGS : PA_CONTEXT_NOAUTOSPAWN;
-	if (pa_context_connect(m_Context, NULL, flags, NULL))
+	if (pa_context_connect(m_Context, nullptr, flags, nullptr))
 		return false;
 
 	for (;;) {
@@ -332,30 +331,30 @@ bool PAInterface::isConnected() {
 }
 
 pa_stream *_createMonitor(PAInterface *interface, uint32_t source, Entry *entry, uint32_t stream) {
-	pa_stream         *s;
-	char              t[16];
-	pa_buffer_attr    attr;
-	pa_sample_spec    ss;
+	pa_stream *s;
+	char t[16];
+	pa_buffer_attr attr{};
+	pa_sample_spec ss{};
 	pa_stream_flags_t flags;
 
 	ss.channels = 1;
-	ss.format   = PA_SAMPLE_FLOAT32;
-	ss.rate     = 25;
+	ss.format = PA_SAMPLE_FLOAT32;
+	ss.rate = 25;
 
 	memset(&attr, 0, sizeof(attr));
-	attr.fragsize  = sizeof(float);
+	attr.fragsize = sizeof(float);
 	attr.maxlength = (uint32_t) -1;
 
 	snprintf(t, sizeof(t), "%u", source);
 
-	s = pa_stream_new(interface->getPAContext(), "PeakDetect", &ss, NULL);
+	s = pa_stream_new(interface->getPAContext(), "PeakDetect", &ss, nullptr);
 	if (!s)
 		return nullptr;
 	if (stream != (uint32_t) -1)
 		pa_stream_set_monitor_stream(s, stream);
 
 	auto *pair = new std::pair<PAInterface *, Entry *>();
-	pair->first  = interface;
+	pair->first = interface;
 	pair->second = entry;
 	interface->m_IEPairs.emplace_back(std::unique_ptr<std::pair<PAInterface *, Entry *>>(pair));
 
@@ -363,7 +362,7 @@ pa_stream *_createMonitor(PAInterface *interface, uint32_t source, Entry *entry,
 	pa_stream_set_state_callback(s, &PAInterface::cb_stream_state, entry);
 
 	flags = (pa_stream_flags_t) (PA_STREAM_DONT_MOVE | PA_STREAM_PEAK_DETECT | PA_STREAM_ADJUST_LATENCY);
-	if (pa_stream_connect_record(s, (stream != (uint32_t) -1) ? 0 : t, &attr, flags) < 0) {
+	if (pa_stream_connect_record(s, (stream != (uint32_t) -1) ? nullptr : t, &attr, flags) < 0) {
 		pa_stream_unref(s);
 		return nullptr;
 	}
@@ -382,7 +381,7 @@ void PAInterface::createMonitorStreamForEntry(Entry *entry, int type) {
 		if (m_Sinks.count(dev) && m_Sinks[dev])
 			entry->m_Monitor = _createMonitor(this, m_Sinks[dev]->m_Index, entry, entry->m_Index);
 	} else if (type != ENTRY_CARDS) {
-		entry->m_Monitor = _createMonitor(this, entry->m_MonitorIndex, entry, -1);
+		entry->m_Monitor = _createMonitor(this, entry->m_MonitorIndex, entry, (uint32_t) -1);
 	}
 }
 

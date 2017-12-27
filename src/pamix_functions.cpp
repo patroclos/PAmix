@@ -1,11 +1,9 @@
 #include <pamix_functions.hpp>
 
-#include <iostream>
+static pamix_ui *pamixUi;
 
-static PAInterface *interface;
-
-void pamix_set_interface(PAInterface *i) {
-	interface = i;
+void pamix_setup(pamix_ui *ui) {
+	pamixUi = ui;
 }
 
 void pamix_quit(argument_t arg) {
@@ -13,52 +11,52 @@ void pamix_quit(argument_t arg) {
 }
 
 void pamix_select_tab(argument_t arg) {
-	selectEntries(interface, (entry_type) arg.i);
+	pamixUi->selectEntries(static_cast<entry_type>(arg.i));
 	signal_update(true);
 }
 
 void pamix_select_next(argument_t arg) {
-	select_next(interface, arg.b);
+	pamixUi->selectNext(arg.b);
 	signal_update(true);
 }
 
 void pamix_select_prev(argument_t arg) {
-	select_previous(interface, arg.b);
+	pamixUi->selectPrevious(arg.b);
 	signal_update(true);
 }
 
 void pamix_set_volume(argument_t arg) {
-	set_volume(interface, arg.d);
+	set_volume(pamixUi, arg.d);
 }
 
 void pamix_add_volume(argument_t arg) {
-	add_volume(interface, arg.d);
+	add_volume(pamixUi, arg.d);
 }
 
 void pamix_cycle_next(argument_t arg) {
-	cycle_switch(interface, true);
+	cycle_switch(pamixUi, true);
 }
 
 void pamix_cycle_prev(argument_t arg) {
-	cycle_switch(interface, false);
+	cycle_switch(pamixUi, false);
 }
 
 void pamix_toggle_lock(argument_t arg) {
-	toggle_lock(interface);
+	toggle_lock(pamixUi);
 	signal_update(true);
 }
 
 void pamix_set_lock(argument_t arg) {
-	set_lock(interface, arg.b);
+	set_lock(pamixUi, arg.b);
 	signal_update(true);
 }
 
 void pamix_toggle_mute(argument_t arg) {
-	toggle_mute(interface);
+	toggle_mute(pamixUi);
 	signal_update(true);
 }
 
 void pamix_set_mute(argument_t arg) {
-	set_mute(interface, arg.b);
+	set_mute(pamixUi, arg.b);
 	signal_update(true);
 }

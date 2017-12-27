@@ -41,7 +41,7 @@ void SourceOutputEntry::setMute(bool mute) {
 }
 
 void SourceOutputEntry::cycleSwitch(bool increment) {
-	iter_entry_t source = interface->getSources().find(m_Device);
+	pamix_entry_iter_t source = interface->getSources().find(m_Device);
 
 	if (increment)
 		source++;

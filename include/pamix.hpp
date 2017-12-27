@@ -2,6 +2,7 @@
 
 #include <../config.hpp>
 #include <painterface.hpp>
+#include "pamix_ui.hpp"
 
 struct UpdateData {
 	bool redrawAll;
@@ -36,21 +37,19 @@ void quit();
 
 void signal_update(bool all, bool threaded = false);
 
-void selectEntries(PAInterface *interface, entry_type type);
+void set_volume(pamix_ui *ui, double pct);
 
-void set_volume(PAInterface *interface, double pct);
+void add_volume(pamix_ui *ui, double pct);
 
-void add_volume(PAInterface *interface, double pct);
+void cycle_switch(pamix_ui *ui, bool inc);
 
-void cycle_switch(PAInterface *interface, bool inc);
+void set_mute(pamix_ui *ui, bool mute);
 
-void set_mute(PAInterface *interface, bool mute);
+void toggle_mute(pamix_ui *ui);
 
-void toggle_mute(PAInterface *interface);
+void set_lock(pamix_ui *ui, bool lock);
 
-void set_lock(PAInterface *interface, bool lock);
-
-void toggle_lock(PAInterface *interface);
+void toggle_lock(pamix_ui *ui);
 
 void select_next(PAInterface *interface, bool precise);
 

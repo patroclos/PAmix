@@ -22,7 +22,7 @@ public:
 	explicit pamix_ui(PAInterface *paInterface);
 	void reset();
 
-	void adjustDisplayedEntries();
+	void selectEntries(entry_type type);
 
 	void redrawAll();
 
@@ -30,10 +30,21 @@ public:
 
 	std::string getEntryDisplayName(Entry *entry);
 
+	pamix_entry_iter_t getSelectedEntryIterator();
+
+	void selectNext(bool includeChannels);
+	void selectPrevious(bool includeChannels);
+
+	int getKeyInput();
+
 private:
 	void drawHeader() const;
 
 	void drawVolumeBar(int y, int x, int width, double fill, double maxFill) const;
 
 	unsigned int drawEntryControlMeters(const Entry *entry, unsigned int entryIndex, unsigned int lineNumber) const;
+
+	void adjustDisplayedEntries();
+
+	void moveSelection(int delta, bool includeChannels);
 };

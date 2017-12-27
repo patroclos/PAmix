@@ -40,7 +40,7 @@ void SinkInputEntry::setMute(bool mute) {
 }
 
 void SinkInputEntry::cycleSwitch(bool increment) {
-	iter_entry_t sink = interface->getSinks().find(m_Device);
+	pamix_entry_iter_t sink = interface->getSinks().find(m_Device);
 
 	if (increment)
 		sink++;

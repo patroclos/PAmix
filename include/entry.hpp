@@ -6,6 +6,11 @@
 #include <vector>
 #include <map>
 #include <volumeutil.hpp>
+#include <memory>
+
+struct Entry;
+
+typedef std::map<uint32_t, std::unique_ptr<Entry>>::iterator pamix_entry_iter_t;
 
 class PAInterface;
 

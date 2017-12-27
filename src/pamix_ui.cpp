@@ -16,6 +16,7 @@ void pamix_ui::reset() {
 	m_EntrySizes.clear();
 	m_NumDrawnEntries = 0;
 	m_NumSkippedEntries = 0;
+	m_SelectedEntry = m_SelectedChannel = 0;
 }
 
 void pamix_ui::drawVolumeBar(int y, int x, int width, double fill, double maxFill) const {
@@ -117,7 +118,10 @@ void pamix_ui::redrawAll() {
 		if (remainingChars < displayName.length()) {
 			string_maxlen_abs(displayName, remainingChars);
 			remainingChars = 0;
+		} else {
+			remainingChars -= displayName.length();
 		}
+
 		mvprintw(curY, curX + remainingChars + 1, displayName.c_str());
 		lineNumber++;
 	}
@@ -147,7 +151,7 @@ unsigned int pamix_ui::drawEntryControlMeters(const Entry *entry, unsigned entry
 				uint32_t volume = entry->m_PAVolume.values[channel];
 				bool isSelectedChannel = isSelectedEntry && channel == m_SelectedChannel;
 				double channel_dB = pa_sw_volume_to_dB(volume);
-				double channel_pct = volume / (double) MAX_VOL;
+				double channel_pct = volume / (double) PA_VOLUME_NORM;
 				pa_channel_position_t channelPosition = entry->m_PAChannelMap.map[channel];
 				std::string channelPrettyName = pa_channel_position_to_pretty_string(channelPosition);
 
@@ -156,7 +160,8 @@ unsigned int pamix_ui::drawEntryControlMeters(const Entry *entry, unsigned entry
 					descriptionTemplate.insert(0, SYM_ARROW);
 
 				unsigned indent = isSelectedChannel ? 13 : 15;
-				mvprintw(lineNumber++, 1, descriptionTemplate.c_str(), indent, channel_dB, channel_pct);
+				mvprintw(lineNumber++, 1, descriptionTemplate.c_str(), indent, channelPrettyName.c_str(), channel_dB,
+				         channel_pct);
 			}
 		}
 	}
@@ -175,6 +180,8 @@ void pamix_ui::redrawVolumeBars() {
 		if (it->second->m_Meter)
 			drawVolumeBar(y, 1, COLS - 2, it->second->m_Peak, 1.0);
 	}
+
+	refresh();
 }
 
 void pamix_ui::drawHeader() const {
@@ -211,6 +218,107 @@ std::string pamix_ui::getEntryDisplayName(Entry *entry) {
 }
 
 pamix_ui::pamix_ui(PAInterface *paInterface) : m_paInterface(paInterface) {
+	reset();
+}
 
+void pamix_ui::selectEntries(entry_type type) {
+	switch (type) {
+		case ENTRY_SINK:
+			m_Entries = &m_paInterface->getSinks();
+			break;
+		case ENTRY_SOURCE:
+			m_Entries = &m_paInterface->getSources();
+			break;
+		case ENTRY_SINKINPUT:
+			m_Entries = &m_paInterface->getSinkInputs();
+			break;
+		case ENTRY_SOURCEOUTPUT:
+			m_Entries = &m_paInterface->getSourceOutputs();
+			break;
+		case ENTRY_CARDS:
+			m_Entries = &m_paInterface->getCards();
+			break;
+		default:
+			return;
+	}
+	m_EntriesType = type;
+}
+
+int pamix_ui::getKeyInput() {
+	std::lock_guard<std::mutex> guard(m_DrawMutex);
+	return getch();
+}
+
+pamix_entry_iter_t pamix_ui::getSelectedEntryIterator() {
+	if (m_SelectedEntry < m_Entries->size())
+		return std::next(m_Entries->begin(), m_SelectedEntry);
+	else
+		return m_Entries->end();
+}
+
+void pamix_ui::adjustDisplayedEntries() {
+	if (!m_Entries->empty())
+		return;
+	if (m_SelectedEntry >= m_NumSkippedEntries && m_SelectedEntry < m_NumSkippedEntries + m_NumDrawnEntries)
+		return;
+	if (m_SelectedEntry < m_NumSkippedEntries) {
+		// scroll up until selected is at top
+		m_NumSkippedEntries = m_SelectedEntry;
+	} else {
+		// scroll down until selected is at bottom
+		uint32_t linesToFree = 0;
+		uint32_t idx = m_NumSkippedEntries + m_NumDrawnEntries;
+		for (; idx <= m_SelectedEntry; idx++)
+			linesToFree += m_EntrySizes[idx] + 2;
+
+		uint32_t linesFreed = 0;
+		idx = m_NumSkippedEntries;
+		while (linesFreed < linesToFree)
+			linesFreed += m_EntrySizes[idx++] + 2;
+		m_NumSkippedEntries = idx;
+	}
+}
+
+void pamix_ui::selectNext(bool includeChannels) {
+	moveSelection(1, includeChannels);
+}
+
+void pamix_ui::selectPrevious(bool includeChannels) {
+	moveSelection(-1, includeChannels);
+}
+
+void pamix_ui::moveSelection(int delta, bool includeChannels) {
+	if (m_SelectedEntry < m_Entries->size()) {
+		auto it = getSelectedEntryIterator();
+
+		int step = delta > 0 ? 1 : -1;
+
+		for (int i = 0, numSteps = delta < 0 ? -delta : delta; i < numSteps; i++) {
+			auto entryThresh = static_cast<int>(delta < 0 ? 0 : m_Entries->size() - 1);
+
+			if (includeChannels) {
+				bool isLocked = it->second->m_Lock;
+				int channelThresh = it->second->m_PAVolume.channels - 1;
+				if (delta < 0)
+					channelThresh = 0;
+
+				if (!isLocked && m_SelectedChannel != channelThresh) {
+					m_SelectedChannel += step;
+					continue;
+				}
+			}
+
+			if ((step == -1 && it == m_Entries->begin()) || (step == 1 && it == m_Entries->end()))
+				break;
+
+			if (m_SelectedEntry != entryThresh) {
+				it = std::next(it, step);
+				m_SelectedEntry += step;
+
+				m_SelectedChannel = static_cast<unsigned int>(delta < 0 ? it->second->m_PAVolume.channels - (char) 1 : 0);
+			}
+		}
+	}
+	adjustDisplayedEntries();
 }
 

@@ -2,6 +2,7 @@
 
 #include <pamix.hpp>
 #include <string>
+#include "pamix_ui.hpp"
 
 union argument_t {
 	double d;
@@ -9,7 +10,7 @@ union argument_t {
 	bool   b;
 };
 
-void pamix_set_interface(PAInterface *interface);
+void pamix_setup(pamix_ui *interface);
 
 void pamix_quit(argument_t arg);
 
