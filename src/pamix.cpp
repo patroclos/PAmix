@@ -189,10 +189,10 @@ void drawEntries(PAInterface *interface) {
 		mvprintw(y++, 1, appname.c_str());
 		if (isSelectedEntry)
 			attroff(A_STANDOUT);
-		bool muted = entryType != ENTRY_CARDS && (entryIter->second->m_Mute || avgvol == PA_VOLUME_MUTED);
-		printw(" %s %s", muted ? SYM_MUTE : "", entryIter->second->m_Lock ? SYM_LOCK : "");
+		bool isVolumeMuted = entryIter->second->m_Mute || avgvol == PA_VOLUME_MUTED;
+		bool showMuteSymbol = entryType != ENTRY_CARDS && isVolumeMuted;
+		printw(" %s %s", showMuteSymbol ? SYM_MUTE : "", entryIter->second->m_Lock ? SYM_LOCK : "");
 
-		//append entryDisplayName
 		int px = 0, py = 0;
 		unsigned space = 0;
 		getyx(stdscr, py, px);
