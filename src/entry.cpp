@@ -5,7 +5,7 @@ Entry::Entry(PAInterface *iface)
 }
 
 Entry::~Entry() {
-	if (m_Monitor) {
+	if (m_Monitor && interface->isConnected()) {
 		mainloop_lockguard mlg(interface->getPAMainloop());
 
 		pa_stream_set_state_callback(m_Monitor, &PAInterface::cb_stream_state, nullptr);

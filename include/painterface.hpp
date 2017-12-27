@@ -26,6 +26,7 @@ struct Entry;
 #define PAI_SUBSCRIPTION_MASK_PEAK 0x1U
 #define PAI_SUBSCRIPTION_MASK_INFO 0x2U
 #define PAI_SUBSCRIPTION_MASK_OTHER 0x4U
+#define PAI_SUBSCRIPTION_MASK_CONNECTION_STATUS 0x128
 
 typedef uint32_t pai_subscription_type_t;
 
@@ -77,6 +78,9 @@ private:
 	void updateCards() { _updateCards(this); }
 
 	void notifySubscription(const pai_subscription_type_t);
+
+	bool tryCreateConnection();
+	void cleanupPulseObjects();
 
 public:
 	PAInterface(const char *context_name);

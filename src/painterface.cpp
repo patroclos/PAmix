@@ -14,30 +14,25 @@ PAInterface::PAInterface(const char *context_name)
 }
 
 PAInterface::~PAInterface() {
-	m_Sinks.clear();
-	m_Sources.clear();
-	m_SinkInputs.clear();
-	m_SourceOutputs.clear();
-	m_Cards.clear();
-	if (m_Context) {
-		pa_operation *o;
-		if (!(o = pa_context_drain(m_Context, &PAInterface::cb_context_drain_complete, nullptr)))
-			pa_context_disconnect(m_Context);
-		else {
-			pa_operation_unref(o);
-		}
-	}
+	cleanupPulseObjects();
 }
 
 void PAInterface::signal_mainloop(void *interface) {
 	pa_threaded_mainloop_signal(((PAInterface *) interface)->m_Mainloop, 0);
 }
 
-void PAInterface::cb_context_state(pa_context *context, void *interface) {
+void PAInterface::cb_context_state(pa_context *context, void *userdata) {
+	auto interface = static_cast<PAInterface *>(userdata);
 	if (PA_CONTEXT_IS_GOOD(pa_context_get_state(context)))
-		PAInterface::signal_mainloop((PAInterface *) interface);
-	else
-		((PAInterface *) interface)->m_Context = nullptr;
+		PAInterface::signal_mainloop(interface);
+	else {
+		interface->m_Sinks.clear();
+		interface->m_SinkInputs.clear();
+		interface->m_Sources.clear();
+		interface->m_SourceOutputs.clear();
+		interface->m_Cards.clear();
+	}
+	interface->notifySubscription(PAI_SUBSCRIPTION_MASK_CONNECTION_STATUS);
 }
 
 void PAInterface::cb_context_drain_complete(pa_context *context, void *) {
@@ -277,9 +272,8 @@ void PAInterface::_updateCards(PAInterface *interface) {
 	__updateEntries(interface, interface->getCards(), ENTRY_CARDS);
 }
 
-bool PAInterface::connect() {
+bool PAInterface::tryCreateConnection() {
 	m_Mainloop = pa_threaded_mainloop_new();
-
 	assert(m_Mainloop);
 
 	m_MainloopApi = pa_threaded_mainloop_get_api(m_Mainloop);
@@ -291,15 +285,20 @@ bool PAInterface::connect() {
 	pa_proplist_free(plist);
 
 	assert(m_Context);
-
 	pa_context_set_state_callback(m_Context, &PAInterface::cb_context_state, this);
+
 	pa_threaded_mainloop_lock(m_Mainloop);
 
-	if (pa_threaded_mainloop_start(m_Mainloop))
+	if (pa_threaded_mainloop_start(m_Mainloop)) {
+		pa_threaded_mainloop_unlock(m_Mainloop);
 		return false;
+	}
+
 	pa_context_flags flags = m_Autospawn ? PA_CONTEXT_NOFLAGS : PA_CONTEXT_NOAUTOSPAWN;
-	if (pa_context_connect(m_Context, nullptr, flags, nullptr))
+	if (pa_context_connect(m_Context, nullptr, flags, nullptr)) {
+		pa_threaded_mainloop_unlock(m_Mainloop);
 		return false;
+	}
 
 	for (;;) {
 		pa_context_state_t state = pa_context_get_state(m_Context);
@@ -324,6 +323,39 @@ bool PAInterface::connect() {
 	updateOutputs();
 	updateCards();
 	return true;
+}
+
+bool PAInterface::connect() {
+	bool success = tryCreateConnection();
+	if (!success)
+		cleanupPulseObjects();
+	return success;
+}
+
+void PAInterface::cleanupPulseObjects() {
+	m_Sinks.clear();
+	m_Sources.clear();
+	m_SinkInputs.clear();
+	m_SourceOutputs.clear();
+	m_Cards.clear();
+	if (m_Context) {
+		pa_operation *o;
+		if (!(o = pa_context_drain(m_Context, &PAInterface::cb_context_drain_complete, nullptr)))
+			pa_context_disconnect(m_Context);
+		else {
+			pa_operation_unref(o);
+		}
+		m_Context = nullptr;
+	}
+
+	if (m_Mainloop) {
+		//pa_threaded_mainloop_unlock(m_Mainloop);
+		//pa_threaded_mainloop_stop(m_Mainloop);
+		pa_threaded_mainloop_free(m_Mainloop);
+		m_Mainloop = nullptr;
+	}
+
+	m_MainloopApi = nullptr;
 }
 
 bool PAInterface::isConnected() {
@@ -394,3 +426,4 @@ void PAInterface::notifySubscription(const pai_subscription_type_t type) {
 		m_Subscription_callback(this, type);
 	}
 }
+

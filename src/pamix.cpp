@@ -82,7 +82,11 @@ void toggle_lock(pamix_ui *ui) {
 void inputThread(pamix_ui *ui) {
 	while (running) {
 		int ch = ui->getKeyInput();
-		if (ch != ERR && ch != KEY_RESIZE && ch != KEY_MOUSE) {
+
+
+		bool isValidKey = ch != ERR && ch != KEY_RESIZE && ch != KEY_MOUSE;
+		//if (isValidKey && ui->m_paInterface->isConnected()) {
+		if (isValidKey) {
 			configuration.pressKey(ch);
 		}
 		usleep(2000);
@@ -90,7 +94,8 @@ void inputThread(pamix_ui *ui) {
 }
 
 void pai_subscription(PAInterface *, pai_subscription_type_t type) {
-	bool updAll = (type & PAI_SUBSCRIPTION_MASK_INFO) != 0;
+	bool updAll = (type & PAI_SUBSCRIPTION_MASK_INFO) != 0
+	              || (type & PAI_SUBSCRIPTION_MASK_CONNECTION_STATUS) != 0;
 	signal_update(updAll);
 }
 
@@ -173,6 +178,16 @@ void loadConfiguration() {
 	configuration.bind("0", "set-volume", "1.0");
 }
 
+void interfaceReconnectThread(PAInterface *interface) {
+	while (running) {
+		if (!interface->isConnected()) {
+			interface->connect();
+			signal_update(true);
+		}
+		sleep(5);
+	}
+}
+
 void handleArguments(int argc, char **argv) {
 	for (int i = 1; i < argc; i++) {
 		std::string arg = argv[i];
@@ -215,14 +230,12 @@ int main(int argc, char **argv) {
 	pamixUi.selectEntries(initialEntryType);
 
 	pai.subscribe(&pai_subscription);
-	if (!pai.connect()) {
-		endwin();
-		fprintf(stderr, "Failed to connect to PulseAudio.\n");
-		exit(1);
-	}
+	pai.connect();
 
 	pamix_setup(&pamixUi);
 	pamixUi.redrawAll();
+
+	std::thread(&interfaceReconnectThread, &pai).detach();
 
 	std::thread inputT(inputThread, &pamixUi);
 	inputT.detach();
@@ -230,6 +243,9 @@ int main(int argc, char **argv) {
 	while (running) {
 		std::unique_lock<std::mutex> lk(updMutex);
 		cv.wait(lk, [] { return !updateDataQ.empty(); });
+
+		if (pai.isConnected() == false)
+			endwin();
 
 		if (updateDataQ.front().redrawAll)
 			pamixUi.redrawAll();

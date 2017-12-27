@@ -2,6 +2,10 @@
 
 static pamix_ui *pamixUi;
 
+inline bool isConnected() {
+	return pamixUi->m_paInterface->isConnected();
+}
+
 void pamix_setup(pamix_ui *ui) {
 	pamixUi = ui;
 }

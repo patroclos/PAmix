@@ -1,21 +1,9 @@
 #include <configuration.hpp>
-
-#include <cstring>
 #include <iostream>
-
-#ifdef FEAT_UNICODE
-
-#include <ncursesw/ncurses.h>
-
-#else
-#include <ncurses.h>
-#endif
-
-#include <sstream>
 
 std::vector<std::pair<int, const char *>> Configuration::m_Keynames;
 
-inline bool startswithsub(const std::string &a, const std::string &b, std::string &sub) {
+inline bool startsWithSubstring(const std::string &a, const std::string &b, std::string &sub) {
 	bool rv = a.substr(0, b.length()) == b;
 	if (rv)
 		sub = a.substr(b.length(), a.length() - b.length());
@@ -163,17 +151,17 @@ bool Configuration::loadFile(Configuration *config, const std::string &path) {
 
 		// set x=y
 		std::string sub;
-		if (startswithsub(line, "set ", sub)) {
+		if (startsWithSubstring(line, "set ", sub)) {
 			size_t pos = sub.find('=');
 			// TODO error message if pos==npos
 			if (pos == std::string::npos)
 				continue;
 			config->set(sub.substr(0, pos), sub.substr(pos + 1, sub.length() - pos - 1));
-		} else if (startswithsub(line, "unbind ", sub)) {
+		} else if (startsWithSubstring(line, "unbind ", sub)) {
 			config->unbind(sub);
-		} else if (startswithsub(line, "unbind-all", sub))
+		} else if (startsWithSubstring(line, "unbind-all", sub))
 			config->unbindall();
-		else if (startswithsub(line, "bind ", sub)) {
+		else if (startsWithSubstring(line, "bind ", sub)) {
 			size_t pos = sub.find(' ');
 			if (pos == std::string::npos)
 				continue;

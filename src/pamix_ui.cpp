@@ -70,6 +70,13 @@ void string_maxlen_pct(std::string &str, double maxPct) {
 void pamix_ui::redrawAll() {
 	std::lock_guard<std::mutex> lockGuard(m_DrawMutex);
 
+	if (!m_paInterface->isConnected()) {
+		clear();
+		mvprintw(1, 1, "No connection to pulseaudio yet");
+		refresh();
+		return;
+	}
+
 	clear();
 	drawHeader();
 
@@ -198,8 +205,10 @@ std::string pamix_ui::getEntryDisplayName(Entry *entry) {
 				const DeviceEntry::DeviceProfile *deviceProfile = deviceEntry->getPortProfile();
 				if (deviceProfile != nullptr)
 					return deviceProfile->description.empty() ? deviceProfile->name : deviceProfile->description;
+				else
+					return deviceEntry->m_Name;
 			}
-			break;
+			return "";
 		}
 		case ENTRY_SINKINPUT: {
 			auto sinkInput = (SinkInputEntry *) entry;
