@@ -244,9 +244,6 @@ int main(int argc, char **argv) {
 		std::unique_lock<std::mutex> lk(updMutex);
 		cv.wait(lk, [] { return !updateDataQ.empty(); });
 
-		if (pai.isConnected() == false)
-			endwin();
-
 		if (updateDataQ.front().redrawAll)
 			pamixUi.redrawAll();
 		else
