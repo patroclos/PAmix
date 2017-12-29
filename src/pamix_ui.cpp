@@ -251,6 +251,12 @@ void pamix_ui::selectEntries(entry_type type) {
 			return;
 	}
 	m_EntriesType = type;
+
+	if (m_SelectedEntry >= m_Entries->size())
+		m_SelectedEntry = (unsigned) m_Entries->size() - 1;
+	auto currentEntry = getSelectedEntryIterator();
+	if (currentEntry != m_Entries->end() && m_SelectedChannel >= currentEntry->second->m_PAVolume.channels)
+		m_SelectedChannel = (unsigned) currentEntry->second->m_PAVolume.channels - 1;
 }
 
 int pamix_ui::getKeyInput() {
