@@ -252,10 +252,11 @@ void pamix_ui::selectEntries(entry_type type) {
 	}
 	m_EntriesType = type;
 
-	if (m_SelectedEntry >= m_Entries->size())
+	if (m_SelectedEntry > 0 && m_SelectedEntry >= m_Entries->size())
 		m_SelectedEntry = (unsigned) m_Entries->size() - 1;
 	auto currentEntry = getSelectedEntryIterator();
-	if (currentEntry != m_Entries->end() && m_SelectedChannel >= currentEntry->second->m_PAVolume.channels)
+	if (currentEntry != m_Entries->end() && m_SelectedChannel > 0 &&
+	    m_SelectedChannel >= currentEntry->second->m_PAVolume.channels)
 		m_SelectedChannel = (unsigned) currentEntry->second->m_PAVolume.channels - 1;
 }
 
@@ -311,7 +312,7 @@ void pamix_ui::moveSelection(int delta, bool includeChannels) {
 		for (int i = 0, numSteps = delta < 0 ? -delta : delta; i < numSteps; i++) {
 			auto entryThresh = static_cast<int>(delta < 0 ? 0 : m_Entries->size() - 1);
 
-			if (includeChannels) {
+			if (includeChannels && m_EntriesType != ENTRY_CARDS) {
 				bool isLocked = it->second->m_Lock;
 				int channelThresh = it->second->m_PAVolume.channels - 1;
 				if (delta < 0)

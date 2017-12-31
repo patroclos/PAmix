@@ -23,7 +23,9 @@ void CardEntry::cycleSwitch(bool increment) {
 	if (m_Profiles.empty())
 		return;
 
-	m_Profile = (m_Profile + increment ? 1 : -1) % (unsigned) m_Profiles.size();
+	m_Profile = (m_Profile + (increment ? 1 : -1)) % (int) m_Profiles.size();
+	if (m_Profile < 0)
+		m_Profile += m_Profiles.size();
 
 	pa_operation *op = pa_context_set_card_profile_by_index(interface->getPAContext(), m_Index,
 	                                                        m_Profiles[m_Profile].name.c_str(), &PAInterface::cb_success,
