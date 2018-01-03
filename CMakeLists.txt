@@ -25,7 +25,7 @@ ELSE ()
 ENDIF ()
 
 add_executable(pamix ${pamix_SRC})
-install(FILES pamix.conf DESTINATION /etc)
+install(FILES pamix.conf DESTINATION /etc/xdg)
 install(TARGETS pamix DESTINATION bin)
 install(FILES man/pamix.1 DESTINATION share/man/man1)
 
