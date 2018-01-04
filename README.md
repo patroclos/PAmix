@@ -4,6 +4,7 @@
 1. [**Installation**](#installation)
 	1. Gentoo
 	2. Arch
+	3. openSUSE
 2. [**Building Manually**](#building-manually)
 	1. Dependencies
 	2. Building and Installing
@@ -19,6 +20,9 @@
 
 ### Arch ###
 `yaourt -S pamix-git`
+
+### openSUSE ###
+`zypper in pamix`
 
 # Building Manually: #
 ## Dependencies: #
