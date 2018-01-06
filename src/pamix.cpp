@@ -130,7 +130,7 @@ void loadConfiguration() {
 
 	char *xdg_config_dirs = getenv("XDG_CONFIG_DIRS");
 
-	path = xdg_config_dirs ? xdg_config_dirs : "/etc";
+	path = xdg_config_dirs ? xdg_config_dirs : "/etc/xdg";
 	path += "/pamix.conf";
 	size_t cpos = path.find(':');
 	while (cpos != std::string::npos) {
