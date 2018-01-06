@@ -17,11 +17,14 @@ file(GLOB_RECURSE pamix_SRC
 include_directories("include")
 link_libraries("pulse" "pthread")
 
+find_package(PkgConfig REQUIRED QUIET)
 IF (WITH_UNICODE)
-    link_libraries("ncursesw")
+    pkg_search_module(NCURSESW REQUIRED ncursesw)
+    link_libraries(${NCURSESW_LDFLAGS})
     add_definitions(-DFEAT_UNICODE)
 ELSE ()
-    link_libraries("ncurses")
+    pkg_search_module(NCURSES REQUIRED ncurses)
+    link_libraries(${NCURSES_LDFLAGS})
 ENDIF ()
 
 add_executable(pamix ${pamix_SRC})
