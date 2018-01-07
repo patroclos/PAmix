@@ -1,13 +1,5 @@
 #include <pamix_ui.hpp>
 
-#ifdef FEAT_UNICODE
-
-#include <ncursesw/ncurses.h>
-
-#else
-#include <ncurses.h>
-#endif
-
 #include <pamix.hpp>
 
 void pamix_ui::reset() {
