@@ -31,6 +31,7 @@ In order for CMake to properly inject the current version into the headers and m
 
 ### Build ##
 * cmake
+* pkg-config
 
 ### Runtime ##
 * PulseAudio
