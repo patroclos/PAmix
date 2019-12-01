@@ -265,7 +265,7 @@ pamix_entry_iter_t pamix_ui::getSelectedEntryIterator() {
 }
 
 void pamix_ui::adjustDisplayedEntries() {
-	if (!m_Entries->empty())
+	if (m_Entries->empty())
 		return;
 	if (m_SelectedEntry >= m_NumSkippedEntries && m_SelectedEntry < m_NumSkippedEntries + m_NumDrawnEntries)
 		return;
