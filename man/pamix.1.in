@@ -153,7 +153,7 @@ F3      show Output devices tab
 .br
 F4      show Input devices tab
 .br
-F4      show Cards tab
+F5      show Cards tab
 .br
 0-9     set volume to percentage (10%-100%)
 .br
