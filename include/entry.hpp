@@ -217,6 +217,8 @@ struct CardEntry : public Entry {
 
 	virtual void setVolume(const int channel, const pa_volume_t volume) {}
 
+	virtual void addVolume(const int channel, const double deltaPct) {}
+
 	virtual void setMute(bool mute) {}
 
 	virtual void move(uint32_t idx) {}
