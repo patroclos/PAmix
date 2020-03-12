@@ -2,9 +2,12 @@
 
 # Table of Contents #
 1. [**Installation**](#installation)
-	1. Gentoo
-	2. Arch
-	3. openSUSE
+	1. Debian / Ubuntu (18.04+) / Raspbian
+	2. Gentoo
+	3. Arch
+	4. openSUSE
+	5. NixOS / Nix
+	6. Void Linux
 2. [**Building Manually**](#building-manually)
 	1. Dependencies
 	2. Building and Installing
