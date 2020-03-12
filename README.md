@@ -15,6 +15,9 @@
 ![alt tag](http://i.imgur.com/NuzrAXZ.gif)
 
 # Installation: #
+### Debian / Ubuntu (18.04+) / Raspbian ###
+`apt install pamix`
+
 ### Gentoo ###
 `emerge media-sound/pamix`
 
@@ -23,6 +26,12 @@
 
 ### openSUSE ###
 `zypper in pamix`
+
+### NixOS / Nix ###
+`nix-env -i pamix`
+
+### Void Linux ###
+`xbps-install -S PAmix`
 
 # Building Manually: #
 ## Dependencies: #
