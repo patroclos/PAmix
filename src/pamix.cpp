@@ -83,6 +83,14 @@ void inputThread(pamix_ui *ui) {
 	while (running) {
 		int ch = ui->getKeyInput();
 
+#ifdef KEY_RESIZE
+		if(ch == KEY_RESIZE)
+		{
+			endwin();
+			refresh();
+			signal_update(true);
+		}
+#endif
 
 		bool isValidKey = ch != ERR && ch != KEY_RESIZE && ch != KEY_MOUSE;
 		//if (isValidKey && ui->m_paInterface->isConnected()) {
@@ -214,7 +222,9 @@ int main(int argc, char **argv) {
 
 	signal(SIGABRT, sig_handle);
 	signal(SIGSEGV, sig_handle);
+#ifndef KEY_RESIZE
 	signal(SIGWINCH, sig_handle_resize);
+#endif
 
 	PAInterface pai("pamix");
 	pamix_ui pamixUi(&pai);
