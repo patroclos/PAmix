@@ -206,6 +206,7 @@ int main(int argc, char **argv) {
 	initscr();
 	init_colors();
 	nodelay(stdscr, true);
+  set_escdelay(25);
 	curs_set(0);
 	keypad(stdscr, true);
 	meta(stdscr, true);
