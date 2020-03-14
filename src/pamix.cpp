@@ -83,6 +83,15 @@ void inputThread(pamix_ui *ui) {
 	while (running) {
 		int ch = ui->getKeyInput();
 
+#ifdef KEY_RESIZE
+		if(ch == KEY_RESIZE)
+		{
+			endwin();
+			refresh();
+			signal_update(true);
+		}
+#endif
+
 		bool isValidKey = ch != ERR && ch != KEY_RESIZE && ch != KEY_MOUSE;
 		if (isValidKey) {
 			configuration.pressKey(ch);
@@ -206,6 +215,7 @@ int main(int argc, char **argv) {
 	initscr();
 	init_colors();
 	nodelay(stdscr, true);
+  set_escdelay(25);
 	curs_set(0);
 	keypad(stdscr, true);
 	meta(stdscr, true);
@@ -213,7 +223,9 @@ int main(int argc, char **argv) {
 
 	signal(SIGABRT, sig_handle);
 	signal(SIGSEGV, sig_handle);
+#ifndef KEY_RESIZE
 	signal(SIGWINCH, sig_handle_resize);
+#endif
 
 	PAInterface pai("pamix");
 	pamix_ui pamixUi(&pai);
