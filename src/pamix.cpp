@@ -83,9 +83,7 @@ void inputThread(pamix_ui *ui) {
 	while (running) {
 		int ch = ui->getKeyInput();
 
-
 		bool isValidKey = ch != ERR && ch != KEY_RESIZE && ch != KEY_MOUSE;
-		//if (isValidKey && ui->m_paInterface->isConnected()) {
 		if (isValidKey) {
 			configuration.pressKey(ch);
 		}
@@ -148,6 +146,8 @@ void loadConfiguration() {
 	configuration.bind("KEY_F(2)", "select-tab", "3");
 	configuration.bind("KEY_F(3)", "select-tab", "0");
 	configuration.bind("KEY_F(4)", "select-tab", "1");
+
+  configuration.bind("^I", "cycle-tab-next");
 
 	configuration.bind("j", "select-next", "channel");
 	configuration.bind("KEY_DOWN", "select-next", "channel");
