@@ -96,6 +96,10 @@ void Configuration::bind(const std::string &key, const std::string &cmd, const s
 		kbind.m_Function = &pamix_set_mute;
 		kbind.m_Argument.b = mute;
 	}
+	else {
+		fprintf(stderr, "Tried binding an invalid command in the configuration: %s\n", cmd.c_str());
+		exit(1);
+	}
 
 	m_Bindings[code].emplace_back(kbind);
 }
