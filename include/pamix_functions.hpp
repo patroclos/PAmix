@@ -10,6 +10,8 @@ union argument_t {
 	bool   b;
 };
 
+#include "configuration.hpp"
+
 void pamix_setup(pamix_ui *interface);
 
 void pamix_quit(argument_t arg);

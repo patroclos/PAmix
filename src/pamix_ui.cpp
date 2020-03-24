@@ -218,7 +218,7 @@ std::string pamix_ui::getEntryDisplayName(Entry *entry) {
 	}
 }
 
-pamix_ui::pamix_ui(PAInterface *paInterface) : m_paInterface(paInterface) {
+pamix_ui::pamix_ui(PAInterface *paInterface, Configuration *config) : m_paInterface(paInterface), m_Config(config) {
 	reset();
 }
 

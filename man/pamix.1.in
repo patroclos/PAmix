@@ -37,7 +37,7 @@ characters after a ';' will be interpreted as comments and ignored
 \fBSYNOPSIS:\fP set KEY=VALUE
 
 .PP
-set is used to set a variable. This is currently only relevant for the 'pulseaudio\_autospawn' and 'default\_tab' options.
+set is used to set a variable. This is currently only relevant for the 'pulseaudio\_autospawn', 'default\_tab' and 'tab\_cycle\_order' options.
 
 .SH bind
 .PP
@@ -78,6 +78,8 @@ The following pamix\-commands are currently supported:
 * add\-volume
 * cycle\-next
 * cycle\-prev
+* cycle\-tab\-next
+* cycle\-tab\-prev
 * toggle\-lock
 * set\-lock
 * toggle\-mute
@@ -116,6 +118,12 @@ the deltavalue can be negative
 .SH cycle\-next and cycle\-prev
 .PP
 these commands will change the device or port of the currently selected entry.
+.br
+they dont take any arguments.
+
+.SH cycle\-tab\-next and cycle\-tab\-prev
+.PP
+these commands will change the active tab, as per the order defined in the tab\_cycle\_order variable.
 .br
 they dont take any arguments.
 

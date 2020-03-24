@@ -5,6 +5,8 @@
 #include "entry.hpp"
 #include "painterface.hpp"
 
+class Configuration;
+
 class pamix_ui {
 private:
 	std::map<uint32_t, unsigned> m_VolumeBarLineNums;
@@ -18,8 +20,9 @@ public:
 	std::map<uint32_t, std::unique_ptr<Entry>> *m_Entries;
 	entry_type m_EntriesType;
 	PAInterface *m_paInterface;
+	Configuration *m_Config;
 public:
-	explicit pamix_ui(PAInterface *paInterface);
+	explicit pamix_ui(PAInterface *paInterface, Configuration *config);
 	void reset();
 
 	void selectEntries(entry_type type);

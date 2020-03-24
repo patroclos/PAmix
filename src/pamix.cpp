@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 #include <configuration.hpp>
+#include <pamix_functions.hpp>
 #include <condition_variable>
 #include <queue>
 #include <csignal>
@@ -150,13 +151,15 @@ void loadConfiguration() {
 		return;
 
 	// if config file cant be loaded, use default bindings
+	configuration.set(CONFIGURATION_CYCLE_ORDER, "2,3,0,1,4");
+
 	configuration.bind("q", "quit");
 	configuration.bind("KEY_F(1)", "select-tab", "2");
 	configuration.bind("KEY_F(2)", "select-tab", "3");
 	configuration.bind("KEY_F(3)", "select-tab", "0");
 	configuration.bind("KEY_F(4)", "select-tab", "1");
 
-  configuration.bind("^I", "cycle-tab-next");
+	configuration.bind("^I", "cycle-tab-next");
 
 	configuration.bind("j", "select-next", "channel");
 	configuration.bind("KEY_DOWN", "select-next", "channel");
@@ -215,7 +218,7 @@ int main(int argc, char **argv) {
 	initscr();
 	init_colors();
 	nodelay(stdscr, true);
-  set_escdelay(25);
+	set_escdelay(25);
 	curs_set(0);
 	keypad(stdscr, true);
 	meta(stdscr, true);
@@ -228,7 +231,7 @@ int main(int argc, char **argv) {
 #endif
 
 	PAInterface pai("pamix");
-	pamix_ui pamixUi(&pai);
+	pamix_ui pamixUi(&pai, &configuration);
 	if (configuration.has(CONFIGURATION_AUTOSPAWN_PULSE))
 		pai.setAutospawn(configuration.getBool(CONFIGURATION_AUTOSPAWN_PULSE));
 

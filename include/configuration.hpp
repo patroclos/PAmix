@@ -1,14 +1,15 @@
 #pragma once
 
 #include <pamix.hpp>
+#include <pamix_functions.hpp>
 #include <map>
 #include <memory>
-#include <pamix_functions.hpp>
 #include <string>
 #include <vector>
 
 #define CONFIGURATION_AUTOSPAWN_PULSE "pulseaudio_autospawn"
 #define CONFIGURATION_DEFAULT_TAB "default_tab"
+#define CONFIGURATION_CYCLE_ORDER "tab_cycle_order"
 
 struct keybind_t {
 	union argument_t m_Argument;
