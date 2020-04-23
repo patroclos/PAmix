@@ -115,11 +115,7 @@ void sig_handle_resize(int) {
 void init_colors() {
 	start_color();
 
-	int background;
-	if(use_default_colors() != ERR)
-		background = -1;
-	else
-		background = 0;
+	int background = use_default_colors() ? 0 : -1;
 
 	init_pair(1, COLOR_GREEN, background);
 	init_pair(2, COLOR_YELLOW, background);
