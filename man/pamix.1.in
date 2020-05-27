@@ -102,7 +102,7 @@ if no argument is given they will select the next and previous entry in the disp
 .PP
 this command takes the targetvalue in form of a double as an argument.
 .br
-depending on weather channels are locked, this command will set the volume of the selected entry/channel to the targetvalue given in the argument.
+depending on whether channels are locked, this command will set the volume of the selected entry/channel to the targetvalue given in the argument.
 .br
 \fIExample:\fP bind 0 set\-volume 1.0 \fI; this will set the volume to 100%\fP
 
@@ -121,7 +121,7 @@ they dont take any arguments.
 
 .SH toggle\-lock
 .PP
-this command toggles weather channels should be locked together for the currently selected entry
+this command toggles whether channels should be locked together for the currently selected entry
 .br
 and takes no arguments.
 
@@ -131,13 +131,13 @@ this command takes either '0' or '1' as an argument and sets the channel\-lock l
 
 .SH toggle\-mute
 .PP
-toggles weather the currently selected entry is muted
+toggles whether the currently selected entry is muted
 .br
 and takes no arguments.
 
 .SH set\-mute
 .PP
-works like the set\-lock mixer\-command, but sets weather the currently selected entry is muted or not
+works like the set\-lock mixer\-command, but sets whether the currently selected entry is muted or not
 .stop
 
 .SH DEFAULT CONFIGURATION
