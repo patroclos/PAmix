@@ -167,7 +167,7 @@ K       select previous entry
 .br
 h/left  decrease volume
 .br
-h/right increase volume
+l/right increase volume
 .br
 c       un/lock channels
 .br
