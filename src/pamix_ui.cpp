@@ -215,7 +215,8 @@ std::string pamix_ui::getEntryDisplayName(Entry *entry) {
 			return (found != m_paInterface->getSources().end()) ? found->second->m_Name : "?";
 		}
 		case ENTRY_CARDS: {
-			return ((CardEntry *) entry)->m_Profiles[((CardEntry *) entry)->m_Profile].description;
+			auto card = static_cast<CardEntry*>(entry);
+			return card->m_Profile > -1 && card->m_Profile < card->m_Profiles.size() ? card->m_Profiles[card->m_Profile].description : "?";
 		}
 		default:
 			return "UNKNOWN ENTRY TYPE";
