@@ -27,6 +27,10 @@
 ### Arch ###
 `yaourt -S pamix-git`
 
+### Fedora ###
+
+`dnf install pamix`
+
 ### openSUSE ###
 `zypper in pamix`
 
