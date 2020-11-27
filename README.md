@@ -5,9 +5,10 @@
 	1. Debian / Ubuntu (18.04+) / Raspbian
 	2. Gentoo
 	3. Arch
-	4. openSUSE
-	5. NixOS / Nix
-	6. Void Linux
+	4. Fedora
+	5. openSUSE
+	6. NixOS / Nix
+	7. Void Linux
 2. [**Building Manually**](#building-manually)
 	1. Dependencies
 	2. Building and Installing
