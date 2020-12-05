@@ -60,7 +60,7 @@ void string_maxlen_pct(std::string &str, double maxPct) {
 }
 
 void pamix_ui::redrawAll() {
-	std::lock_guard<std::mutex> lockGuard(m_DrawMutex);
+	std::lock_guard<std::mutex> lockGuard(m_paInterface->m_ModifyMutex);
 
 	if (!m_paInterface->isConnected()) {
 		clear();
@@ -170,7 +170,7 @@ unsigned int pamix_ui::drawEntryControlMeters(const Entry *entry, unsigned entry
 }
 
 void pamix_ui::redrawVolumeBars() {
-	std::lock_guard<std::mutex> lockGuard(m_DrawMutex);
+	std::lock_guard<std::mutex> lockGuard(m_paInterface->m_ModifyMutex);
 
 	auto it = std::next(m_Entries->begin(), m_NumSkippedEntries);
 	uint32_t index = 0;
@@ -258,7 +258,7 @@ void pamix_ui::selectEntries(entry_type type) {
 }
 
 int pamix_ui::getKeyInput() {
-	std::lock_guard<std::mutex> guard(m_DrawMutex);
+	std::lock_guard<std::mutex> lockGuard(m_paInterface->m_ModifyMutex);
 	return getch();
 }
 

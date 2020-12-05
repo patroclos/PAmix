@@ -10,7 +10,6 @@ private:
 	std::map<uint32_t, unsigned> m_VolumeBarLineNums;
 	std::map<uint32_t, uint8_t> m_EntrySizes;
 	unsigned m_NumDrawnEntries;
-	std::mutex m_DrawMutex;
 public:
 	unsigned m_SelectedEntry;
 	unsigned m_SelectedChannel;
