@@ -63,13 +63,13 @@ void pamix_ui::redrawAll() {
 	std::lock_guard<std::mutex> lockGuard(m_DrawMutex);
 
 	if (!m_paInterface->isConnected()) {
-		clear();
+		erase();
 		mvprintw(1, 1, "No connection to pulseaudio yet");
-		refresh();
+		doupdate();
 		return;
 	}
 
-	clear();
+	erase();
 	drawHeader();
 
 	unsigned lineNumber = 2;
@@ -126,7 +126,7 @@ void pamix_ui::redrawAll() {
 	}
 
 	m_NumDrawnEntries = entryIndex - m_NumSkippedEntries;
-	refresh();
+	doupdate();
 }
 
 unsigned int pamix_ui::drawEntryControlMeters(const Entry *entry, unsigned entryIndex, unsigned int lineNumber) const {
@@ -180,7 +180,7 @@ void pamix_ui::redrawVolumeBars() {
 			drawVolumeBar(y, 1, COLS - 2, it->second->m_Peak, 1.0);
 	}
 
-	refresh();
+	doupdate();
 }
 
 void pamix_ui::drawHeader() const {
