@@ -103,7 +103,7 @@ void pamix_ui::redrawAll() {
 		string_maxlen_pct(applicationName, 0.4);
 		if (isSelectedEntry)
 			attron(A_STANDOUT);
-		mvprintw(lineNumber++, 1, applicationName.c_str());
+		mvprintw(lineNumber++, 1, "%s", applicationName.c_str());
 		attroff(A_STANDOUT);
 
 		bool isMuted = entry->m_Mute || averageVolume == PA_VOLUME_MUTED;
@@ -121,7 +121,7 @@ void pamix_ui::redrawAll() {
 			remainingChars -= displayName.length();
 		}
 
-		mvprintw(curY, curX + remainingChars + 1, displayName.c_str());
+		mvprintw(curY, curX + remainingChars + 1, "%s", displayName.c_str());
 		lineNumber++;
 	}
 
