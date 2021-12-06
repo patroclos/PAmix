@@ -184,7 +184,7 @@ void pamix_ui::redrawVolumeBars() {
 }
 
 void pamix_ui::drawHeader() const {
-	mvprintw(0, 1, "%d/%d", m_Entries->empty() ? 0 : m_SelectedEntry + 1, m_Entries->size());
+	mvprintw(0, 1, "%d/%d", m_Entries->empty() ? 0 : m_SelectedEntry + 1, (unsigned)m_Entries->size());
 	mvprintw(0, 10, "%s", entryTypeNames[m_EntriesType]);
 }
 
