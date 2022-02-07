@@ -9,8 +9,8 @@ void SourceEntry::update(const pa_source_info *info) {
 	m_PAChannelMap = info->channel_map;
 	m_Kill = false;
 
-	m_Ports.clear();
 	m_Port = -1;
+	m_Ports.clear();
 	for (unsigned i = 0; i < info->n_ports; i++) {
 		auto port = info->ports[i];
 		m_Ports.emplace_back(port->name, port->description);

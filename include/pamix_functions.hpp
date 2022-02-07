@@ -16,6 +16,10 @@ void pamix_quit(argument_t arg);
 
 void pamix_select_tab(argument_t arg);
 
+void pamix_cycle_tab_next(argument_t arg);
+
+void pamix_cycle_tab_prev(argument_t arg);
+
 void pamix_select_next(argument_t arg);
 
 void pamix_select_prev(argument_t arg);

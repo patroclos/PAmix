@@ -100,7 +100,7 @@ struct DeviceEntry : public Entry {
 
 	virtual void cycleSwitch(bool increment) = 0;
 
-	virtual const DeviceProfile *getPortProfile() const { return m_Port > -1 ? &m_Ports[m_Port] : nullptr; }
+	virtual const DeviceProfile *getPortProfile() const { return m_Port > -1 && m_Port < m_Ports.size() ? &m_Ports[m_Port] : nullptr; }
 
 	virtual void setPort(const char *port) = 0;
 };

@@ -57,6 +57,10 @@ void Configuration::bind(const std::string &key, const std::string &cmd, const s
 		sscanf(args.c_str(), "%d", &tab);
 		kbind.m_Function = &pamix_select_tab;
 		kbind.m_Argument.i = tab;
+	} else if (!cmd.compare("cycle-tab-next")) {
+		kbind.m_Function = &pamix_cycle_tab_next;
+	} else if (!cmd.compare("cycle-tab-prev")) {
+		kbind.m_Function = &pamix_cycle_tab_prev;
 	} else if (!cmd.compare("select-next")) {
 		bool precise = !args.compare("channel");
 		kbind.m_Function = &pamix_select_next;
@@ -91,6 +95,10 @@ void Configuration::bind(const std::string &key, const std::string &cmd, const s
 		bool mute = args.compare("0") != 0;
 		kbind.m_Function = &pamix_set_mute;
 		kbind.m_Argument.b = mute;
+	}
+	else {
+		fprintf(stderr, "Tried binding an invalid command in the configuration: %s\n", cmd.c_str());
+		exit(1);
 	}
 
 	m_Bindings[code].emplace_back(kbind);

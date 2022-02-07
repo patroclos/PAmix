@@ -17,12 +17,14 @@ std::condition_variable cv;
 
 std::queue<UpdateData> updateDataQ;
 
-void quit() {
+void quit()
+{
 	running = false;
 	signal_update(false);
 }
 
-void __signal_update(bool all) {
+void __signal_update(bool all)
+{
 	{
 		std::lock_guard<std::mutex> lk(updMutex);
 		updateDataQ.push(UpdateData(all));
@@ -30,62 +32,79 @@ void __signal_update(bool all) {
 	cv.notify_one();
 }
 
-void signal_update(bool all, bool threaded) {
+void signal_update(bool all, bool threaded)
+{
 	if (threaded)
 		std::thread(__signal_update, all).detach();
 	else
 		__signal_update(all);
 }
 
-void set_volume(pamix_ui *ui, double pct) {
+void set_volume(pamix_ui *ui, double pct)
+{
 	auto it = ui->getSelectedEntryIterator();
 	if (it != ui->m_Entries->end())
-		it->second->setVolume(it->second->m_Lock ? -1 : (int) ui->m_SelectedChannel, (pa_volume_t) (PA_VOLUME_NORM * pct));
+		it->second->setVolume(it->second->m_Lock ? -1 : (int)ui->m_SelectedChannel, (pa_volume_t)(PA_VOLUME_NORM * pct));
 }
 
-void add_volume(pamix_ui *ui, double pct) {
+void add_volume(pamix_ui *ui, double pct)
+{
 	auto it = ui->getSelectedEntryIterator();
 	if (it != ui->m_Entries->end())
-		it->second->addVolume(it->second->m_Lock ? -1 : (int) ui->m_SelectedChannel, pct);
+		it->second->addVolume(it->second->m_Lock ? -1 : (int)ui->m_SelectedChannel, pct);
 }
 
-void cycle_switch(pamix_ui *ui, bool increment) {
+void cycle_switch(pamix_ui *ui, bool increment)
+{
 	auto it = ui->getSelectedEntryIterator();
 	if (it != ui->m_Entries->end())
 		it->second->cycleSwitch(increment);
 }
 
-void set_mute(pamix_ui *ui, bool mute) {
+void set_mute(pamix_ui *ui, bool mute)
+{
 	auto it = ui->getSelectedEntryIterator();
 	if (it != ui->m_Entries->end())
 		it->second->setMute(mute);
 }
 
-void toggle_mute(pamix_ui *ui) {
+void toggle_mute(pamix_ui *ui)
+{
 	auto it = ui->getSelectedEntryIterator();
 	if (it != ui->m_Entries->end())
 		it->second->setMute(!it->second->m_Mute);
 }
 
-void set_lock(pamix_ui *ui, bool lock) {
+void set_lock(pamix_ui *ui, bool lock)
+{
 	auto it = ui->getSelectedEntryIterator();
 	if (it != ui->m_Entries->end())
 		it->second->m_Lock = lock;
 }
 
-void toggle_lock(pamix_ui *ui) {
+void toggle_lock(pamix_ui *ui)
+{
 	auto it = ui->getSelectedEntryIterator();
 	if (it != ui->m_Entries->end())
 		it->second->m_Lock = !it->second->m_Lock;
 }
 
-void inputThread(pamix_ui *ui) {
-	while (running) {
+void inputThread(pamix_ui *ui)
+{
+	while (running)
+	{
 		int ch = ui->getKeyInput();
 
+#ifdef KEY_RESIZE
+		if (ch == KEY_RESIZE)
+		{
+			endwin();
+			refresh();
+			signal_update(true);
+		}
+#endif
 
 		bool isValidKey = ch != ERR && ch != KEY_RESIZE && ch != KEY_MOUSE;
-		//if (isValidKey && ui->m_paInterface->isConnected()) {
 		if (isValidKey) {
 			configuration.pressKey(ch);
 		}
@@ -94,8 +113,7 @@ void inputThread(pamix_ui *ui) {
 }
 
 void pai_subscription(PAInterface *, pai_subscription_type_t type) {
-	bool updAll = (type & PAI_SUBSCRIPTION_MASK_INFO) != 0
-	              || (type & PAI_SUBSCRIPTION_MASK_CONNECTION_STATUS) != 0;
+	bool updAll = (type & PAI_SUBSCRIPTION_MASK_INFO) != 0 || (type & PAI_SUBSCRIPTION_MASK_CONNECTION_STATUS) != 0;
 	signal_update(updAll);
 }
 
@@ -107,9 +125,12 @@ void sig_handle_resize(int) {
 
 void init_colors() {
 	start_color();
-	init_pair(1, COLOR_GREEN, 0);
-	init_pair(2, COLOR_YELLOW, 0);
-	init_pair(3, COLOR_RED, 0);
+
+	int background = use_default_colors() ? 0 : -1;
+
+	init_pair(1, COLOR_GREEN, background);
+	init_pair(2, COLOR_YELLOW, background);
+	init_pair(3, COLOR_RED, background);
 }
 
 void sig_handle(int) {
@@ -148,6 +169,9 @@ void loadConfiguration() {
 	configuration.bind("KEY_F(2)", "select-tab", "3");
 	configuration.bind("KEY_F(3)", "select-tab", "0");
 	configuration.bind("KEY_F(4)", "select-tab", "1");
+	configuration.bind("KEY_F(5)", "select-tab", "4");
+
+	configuration.bind("^I", "cycle-tab-next");
 
 	configuration.bind("j", "select-next", "channel");
 	configuration.bind("KEY_DOWN", "select-next", "channel");
@@ -206,7 +230,7 @@ int main(int argc, char **argv) {
 	initscr();
 	init_colors();
 	nodelay(stdscr, true);
-  set_escdelay(25);
+	set_escdelay(25);
 	curs_set(0);
 	keypad(stdscr, true);
 	meta(stdscr, true);
@@ -214,7 +238,9 @@ int main(int argc, char **argv) {
 
 	signal(SIGABRT, sig_handle);
 	signal(SIGSEGV, sig_handle);
+#ifndef KEY_RESIZE
 	signal(SIGWINCH, sig_handle_resize);
+#endif
 
 	PAInterface pai("pamix");
 	pamix_ui pamixUi(&pai);
@@ -225,7 +251,7 @@ int main(int argc, char **argv) {
 	if (configuration.has(CONFIGURATION_DEFAULT_TAB)) {
 		int value = configuration.getInt(CONFIGURATION_DEFAULT_TAB);
 		if (value >= 0 && value < ENTRY_COUNT)
-			initialEntryType = (entry_type) value;
+			initialEntryType = (entry_type)value;
 	}
 
 	pamixUi.selectEntries(initialEntryType);
@@ -242,14 +268,20 @@ int main(int argc, char **argv) {
 	inputT.detach();
 
 	while (running) {
-		std::unique_lock<std::mutex> lk(updMutex);
-		cv.wait(lk, [] { return !updateDataQ.empty(); });
+		bool all;
+		{
+			std::unique_lock<std::mutex> lk(updMutex);
+			cv.wait(lk, [] { return !updateDataQ.empty(); });
+			if (updateDataQ.empty())
+				continue;
+			all = updateDataQ.front().redrawAll;
+			updateDataQ.pop();
+		}
 
-		if (updateDataQ.front().redrawAll)
+		if (all)
 			pamixUi.redrawAll();
 		else
 			pamixUi.redrawVolumeBars();
-		updateDataQ.pop();
 	}
 	endwin();
 	return 0;

@@ -60,7 +60,7 @@ void string_maxlen_pct(std::string &str, double maxPct) {
 }
 
 void pamix_ui::redrawAll() {
-	std::lock_guard<std::mutex> lockGuard(m_DrawMutex);
+	std::lock_guard<std::mutex> lockGuard(m_paInterface->m_ModifyMutex);
 
 	if (!m_paInterface->isConnected()) {
 		clear();
@@ -68,6 +68,9 @@ void pamix_ui::redrawAll() {
 		refresh();
 		return;
 	}
+
+	if(m_SelectedEntry >= m_Entries->size())
+		m_SelectedEntry = m_Entries->size() - 1;
 
 	clear();
 	drawHeader();
@@ -87,10 +90,9 @@ void pamix_ui::redrawAll() {
 
 		std::string applicationName = entryIter->second ? entry->m_Name : "";
 		pa_volume_t averageVolume = pa_cvolume_avg(&entry->m_PAVolume);
-		char numChannels = entry->m_Lock ? (char) 1 : entry->m_PAVolume.channels;
 		bool isSelectedEntry = entryIndex == m_SelectedEntry;
 
-		if (lineNumber + numChannels + 2 > (unsigned) LINES)
+		if (lineNumber + m_EntrySizes[entryIndex] + 2 > (unsigned) LINES)
 			break;
 
 		lineNumber = drawEntryControlMeters(entry, entryIndex, lineNumber);
@@ -168,7 +170,7 @@ unsigned int pamix_ui::drawEntryControlMeters(const Entry *entry, unsigned entry
 }
 
 void pamix_ui::redrawVolumeBars() {
-	std::lock_guard<std::mutex> lockGuard(m_DrawMutex);
+	std::lock_guard<std::mutex> lockGuard(m_paInterface->m_ModifyMutex);
 
 	auto it = std::next(m_Entries->begin(), m_NumSkippedEntries);
 	uint32_t index = 0;
@@ -204,14 +206,17 @@ std::string pamix_ui::getEntryDisplayName(Entry *entry) {
 		}
 		case ENTRY_SINKINPUT: {
 			auto sinkInput = (SinkInputEntry *) entry;
-			return m_paInterface->getSinks()[sinkInput->m_Device]->m_Name;
+			auto found = m_paInterface->getSinks().find(sinkInput->m_Device);
+			return (found != m_paInterface->getSinks().end()) ? found->second->m_Name : "?";
 		}
 		case ENTRY_SOURCEOUTPUT: {
 			auto sourceOutput = (SourceOutputEntry *) entry;
-			return m_paInterface->getSources()[sourceOutput->m_Device]->m_Name;
+			auto found = m_paInterface->getSources().find(sourceOutput->m_Device);
+			return (found != m_paInterface->getSources().end()) ? found->second->m_Name : "?";
 		}
 		case ENTRY_CARDS: {
-			return ((CardEntry *) entry)->m_Profiles[((CardEntry *) entry)->m_Profile].description;
+			auto card = static_cast<CardEntry*>(entry);
+			return card->m_Profile > -1 && card->m_Profile < card->m_Profiles.size() ? card->m_Profiles[card->m_Profile].description : "?";
 		}
 		default:
 			return "UNKNOWN ENTRY TYPE";
@@ -253,7 +258,7 @@ void pamix_ui::selectEntries(entry_type type) {
 }
 
 int pamix_ui::getKeyInput() {
-	std::lock_guard<std::mutex> guard(m_DrawMutex);
+	std::lock_guard<std::mutex> lockGuard(m_paInterface->m_ModifyMutex);
 	return getch();
 }
 
@@ -296,35 +301,36 @@ void pamix_ui::selectPrevious(bool includeChannels) {
 }
 
 void pamix_ui::moveSelection(int delta, bool includeChannels) {
-	if (m_SelectedEntry < m_Entries->size()) {
-		auto it = getSelectedEntryIterator();
+	if(m_SelectedEntry >= m_Entries->size())
+		m_SelectedEntry = m_Entries->size() - 1;
 
-		int step = delta > 0 ? 1 : -1;
+	auto it = getSelectedEntryIterator();
 
-		for (int i = 0, numSteps = delta < 0 ? -delta : delta; i < numSteps; i++) {
-			auto entryThresh = static_cast<int>(delta < 0 ? 0 : m_Entries->size() - 1);
+	int step = delta > 0 ? 1 : -1;
 
-			if (includeChannels && m_EntriesType != ENTRY_CARDS) {
-				bool isLocked = it->second->m_Lock;
-				int channelThresh = it->second->m_PAVolume.channels - 1;
-				if (delta < 0)
-					channelThresh = 0;
+	for (int i = 0, numSteps = delta < 0 ? -delta : delta; i < numSteps; i++) {
+		auto entryThresh = static_cast<int>(delta < 0 ? 0 : m_Entries->size() - 1);
 
-				if (!isLocked && m_SelectedChannel != channelThresh) {
-					m_SelectedChannel += step;
-					continue;
-				}
+		if (includeChannels && m_EntriesType != ENTRY_CARDS) {
+			bool isLocked = it->second->m_Lock;
+			int channelThresh = it->second->m_PAVolume.channels - 1;
+			if (delta < 0)
+				channelThresh = 0;
+
+			if (!isLocked && m_SelectedChannel != channelThresh) {
+				m_SelectedChannel += step;
+				continue;
 			}
+		}
 
-			if ((step == -1 && it == m_Entries->begin()) || (step == 1 && it == m_Entries->end()))
-				break;
+		if ((step == -1 && it == m_Entries->begin()) || (step == 1 && it == m_Entries->end()))
+			break;
 
-			if (m_SelectedEntry != entryThresh) {
-				it = std::next(it, step);
-				m_SelectedEntry += step;
+		if (m_SelectedEntry != entryThresh) {
+			it = std::next(it, step);
+			m_SelectedEntry += step;
 
-				m_SelectedChannel = static_cast<unsigned int>(delta < 0 ? it->second->m_PAVolume.channels - (char) 1 : 0);
-			}
+			m_SelectedChannel = static_cast<unsigned int>(delta < 0 ? it->second->m_PAVolume.channels - (char) 1 : 0);
 		}
 	}
 	adjustDisplayedEntries();

@@ -19,6 +19,20 @@ void pamix_select_tab(argument_t arg) {
 	signal_update(true);
 }
 
+void pamix_cycle_tab_next(argument_t arg) {
+	entry_type current = pamixUi->m_EntriesType;
+	entry_type next = static_cast<entry_type>((current + 1) % ENTRY_COUNT);
+	pamixUi->selectEntries(next);
+	signal_update(true);
+}
+
+void pamix_cycle_tab_prev(argument_t arg) {
+	entry_type current = pamixUi->m_EntriesType;
+	entry_type next = static_cast<entry_type>((ENTRY_COUNT + current - 1) % ENTRY_COUNT);
+	pamixUi->selectEntries(next);
+	signal_update(true);
+}
+
 void pamix_select_next(argument_t arg) {
 	pamixUi->selectNext(arg.b);
 	signal_update(true);

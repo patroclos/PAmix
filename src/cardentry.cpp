@@ -8,8 +8,8 @@ void CardEntry::update(const pa_card_info *info) {
 	m_Meter = false;
 	m_PAVolume.channels = 0;
 
-	m_Profiles.clear();
 	m_Profile = -1;
+	m_Profiles.clear();
 	for (unsigned i = 0; i < info->n_profiles; i++) {
 		m_Profiles.emplace_back(info->profiles2[i]);
 		if (info->profiles2[i] == info->active_profile2)
