@@ -374,6 +374,10 @@ void app_entry_info(const void *info, entry_type type) {
 	if (i != -1) {
 		Entry *entry = &app.entries.items[i];
 		assert(entry->type == type);
+		if(strcmp(entry->name, name) != 0) {
+			free((void*)entry->name);
+			entry->name = strdup(name);
+		}
 		entry->marked = false;
 		entry->volume = pa_entry_volume(info, type);
 		entry->corked = pa_entry_corked(info, type);
