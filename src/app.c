@@ -132,7 +132,12 @@ static pa_stream *create_monitor(pa_context *ctx, uint32_t monitor_stream, uint3
 	char devname[16];
 	if (monitor_stream != PA_INVALID_INDEX) {
 		assert(device == PA_INVALID_INDEX);
-		assert(pa_stream_set_monitor_stream(stream, monitor_stream) == 0);
+		int err = pa_stream_set_monitor_stream(stream, monitor_stream);
+		if (err != 0) {
+			fprintf(stderr, "failed to set peakdetect monitor-stream: %s\n", pa_strerror(err));
+			pa_stream_unref(stream);
+			return NULL;
+		}
 	} else {
 		assert(device != PA_INVALID_INDEX);
 		sprintf(devname, "%u", device);
@@ -381,7 +386,6 @@ void app_entry_info(const void *info, entry_type type) {
 		if (pa_entry_corked(info, type))
 			entry->peak = 0;
 		entry->props = pa_proplist_copy(pa_entry_proplist(info, type));
-		//entry_data_free(entry);
 		apply_entry_data(&entry->data, info, type);
 	} else {
 		Entry ent = {
@@ -602,8 +606,11 @@ void app_init(App *app, pa_context *context, pa_threaded_mainloop *mainloop) {
 	app->entry_page = ENTRY_SINKINPUT;
 	app->running = true;
 	app->resized = ATOMIC_VAR_INIT(false);
-	assert(pthread_mutex_init(&app->mutex, NULL) == 0);
-	assert(pthread_cond_init(&app->cond, NULL) == 0);
+	int err = pthread_mutex_init(&app->mutex, NULL);
+	if(err != 0) {
+		fprintf(stderr, "failed to create pthread mutex: %d\n", err);
+		exit(1);
+	}
 }
 
 static void entry_data_free(Entry *entry) {

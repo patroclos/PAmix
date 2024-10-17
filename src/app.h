@@ -84,7 +84,6 @@ typedef struct {
 	int selected_channel;
 	int scroll;
 	pthread_mutex_t mutex;
-	pthread_cond_t cond;
 	atomic_bool should_refresh;
 	atomic_bool resized;
 	//bool resized;

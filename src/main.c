@@ -113,7 +113,7 @@ void *reconnect_thread_main(void *arg) {
 		pa_proplist_free(props);
 		pa_context_set_state_callback(app.pa_context, &on_ctx_state, app.pa_mainloop);
 		err = pa_context_connect(app.pa_context, NULL, (pa_context_flags_t)PA_CONTEXT_NOAUTOSPAWN, NULL);
-		if (err < 0) {
+		if (err != 0) {
 			pa_context_unref(app.pa_context);
 			app.pa_context = NULL;
 			// TODO: on error we probably want to sleep with the lock held, so noone else does any funny business
@@ -259,8 +259,6 @@ static bool drain_input_queue(const Config *cfg) {
 				uint32_t device_list[512] = {0};
 				for (size_t i = 0; i < sizeof(device_list) / sizeof(*device_list); i++)
 					device_list[i] = PA_INVALID_INDEX;
-				assert(device_list[500] == PA_INVALID_INDEX);
-				assert(device_list[0] == PA_INVALID_INDEX);
 
 				uint32_t *end = device_list;
 				pa_operation *op;
@@ -482,8 +480,12 @@ int main() {
 
 	pthread_t input_thread;
 	pthread_t reconnect_thread;
-	assert(pthread_create(&input_thread, NULL, &input_thread_main, NULL) == 0);
-	assert(pthread_create(&reconnect_thread, NULL, &reconnect_thread_main, NULL) == 0);
+	int pthread_status = pthread_create(&input_thread, NULL, &input_thread_main, NULL);
+	pthread_status |= pthread_create(&reconnect_thread, NULL, &reconnect_thread_main, NULL);
+	if(pthread_status != 0) {
+		fprintf(stderr, "failed to create threads\n");
+		exit(1);
+	}
 
 	while (app.running) {
 		{
