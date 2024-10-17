@@ -132,8 +132,10 @@ int config_load(Config *config, const char *path) {
 			// TODO: tab cycle?
 			continue;
 		}
+		/*
 		if(strlen(line) > 0)
 			fprintf(stderr, "line: %s\n", line);
+			*/
 	}
 	free(text);
 

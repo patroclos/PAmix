@@ -111,8 +111,6 @@ static void cb_monitor_state(pa_stream *stream, void *data) {
 		if (idx == -1) {
 			int err = pa_stream_disconnect(stream);
 			pa_stream_unref(stream);
-			// TODO: remove log
-			fprintf(stderr, "destroyed orphan stream %d\n", err);
 		}
 	}
 }
@@ -134,7 +132,6 @@ static pa_stream *create_monitor(pa_context *ctx, uint32_t monitor_stream, uint3
 		assert(device == PA_INVALID_INDEX);
 		int err = pa_stream_set_monitor_stream(stream, monitor_stream);
 		if (err != 0) {
-			fprintf(stderr, "failed to set peakdetect monitor-stream: %s\n", pa_strerror(err));
 			pa_stream_unref(stream);
 			return NULL;
 		}
@@ -151,7 +148,6 @@ static pa_stream *create_monitor(pa_context *ctx, uint32_t monitor_stream, uint3
 	int err = pa_stream_connect_record(stream, device == PA_INVALID_INDEX ? NULL : devname, &bufattr, flags);
 	if (err != 0) {
 		pa_stream_unref(stream);
-		fprintf(stderr, "connect record fail: %s\n", pa_strerror(err));
 		return NULL;
 	}
 

@@ -224,7 +224,6 @@ void collect_source_indices(pa_context *ctx, const pa_source_info *i, int eol, v
 		pthread_mutex_lock(&app.mutex); \
 		pa_operation_unref(operation); \
 		if((ostate) == PA_OPERATION_CANCELLED) { \
-			fprintf(stderr, "%s[%s:%d]: operation cancelled, reporting error\n", __FILE__, __func__, __LINE__);\
 			return or_return; \
 		}\
 		assert((ostate) == PA_OPERATION_DONE);\
@@ -437,7 +436,7 @@ int main() {
 
 	pa_threaded_mainloop_lock(mainloop);
 	if (pa_threaded_mainloop_start(mainloop) == -1) {
-		printf("mainloop start fail\n");
+		fprintf(stderr, "could not start mainloop\n");
 		return 1;
 	}
 
