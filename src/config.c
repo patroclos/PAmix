@@ -150,6 +150,10 @@ void config_default(Config *config) {
 	config->keymap['l'] = (Action){.type = ACTION_VOLUME_ADD, .data = {.volume = 0.05f}};
 	config->keymap['j'] = (Action){.type = ACTION_ENTRY_NEXT};
 	config->keymap['k'] = (Action){.type = ACTION_ENTRY_PREV};
+	config->keymap[KEY_LEFT] = (Action){.type = ACTION_VOLUME_ADD, .data = {.volume = -0.05f}};
+	config->keymap[KEY_RIGHT] = (Action){.type = ACTION_VOLUME_ADD, .data = {.volume = 0.05f}};
+	config->keymap[KEY_DOWN] = (Action){.type = ACTION_ENTRY_NEXT};
+	config->keymap[KEY_UP] = (Action){.type = ACTION_ENTRY_PREV};
 	for(int i = 0; i <= ENTRY_CARD; i++)
 		config->keymap[KEY_F(i + 1)] = (Action){.type = ACTION_SELECT_TAB, .data = {.tab = (entry_type)i}};
 	config->keymap['s'] = (Action){.type = ACTION_DEVICE_NEXT};
