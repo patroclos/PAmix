@@ -1,0 +1,2 @@
+CompileFlags:
+  Add: [-xc, -std=c99, -Wall, -Wextra, -Werror, -pedantic, -D_DEFAULT_SOURCE, -D_XOPEN_SOURCE=600]

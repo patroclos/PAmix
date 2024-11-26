@@ -28,7 +28,7 @@ static inline int expected_entry_lines(const Entry *ent) {
 	return channel_lines + 1 + (ent->type != ENTRY_CARD);
 }
 
-int compute_entry_scroll();
+int compute_entry_scroll(void);
 
 void on_ctx_state(pa_context *ctx, void *data) {
 	(void)ctx;
@@ -405,7 +405,7 @@ static bool drain_input_queue(const Config *cfg) {
 	return true;
 }
 
-int main() {
+int main(void) {
 	Config cfg = {0};
 	do {
 		const char *home = getenv("HOME");
@@ -521,14 +521,12 @@ int main() {
 		}
 		if (atomic_exchange(&app.should_refresh, false)) {
 			bool ok = app_refresh_entries(&app);
-			if(!ok)
+			if(!ok) {
 				continue;
+			}
 			pthread_mutex_lock(&app.mutex);
 			app.scroll = compute_entry_scroll();
 			erase();
-			app.should_refresh = false;
-			app.new_peaks = false;
-
 
 			const char *entry_type_names[] = {"Playback", "Recording", "Output Devices", "Input Devices", "Cards"};
 			move(0, 1);
@@ -716,7 +714,7 @@ int main() {
 
 
 // compute new scroll so selected entry stays in view
-int compute_entry_scroll() {
+int compute_entry_scroll(void) {
 	int scroll = app.scroll;
 	if (scroll > app.selected_entry)
 		return app.selected_entry;

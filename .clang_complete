@@ -1,4 +1,0 @@
--xc++
--Iinclude
--std=c++11
--I/usr/include/ncursesw

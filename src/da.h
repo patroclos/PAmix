@@ -8,8 +8,7 @@
   do {                                                                         \
     if ((da)->len >= (da)->cap) {                                              \
       (da)->cap = da_grow_cap(da);                                             \
-      (da)->items = (typeof((da)->items))realloc(                              \
-          (da)->items, (da)->cap * sizeof(*(da)->items));                      \
+      (da)->items = realloc((da)->items, (da)->cap * sizeof(*(da)->items));    \
       assert((da)->items != NULL);                                             \
     }                                                                          \
     (da)->items[(da)->len++] = (item);                                         \
@@ -22,8 +21,7 @@
     while ((da)->len + (add) > (da)->cap) {                                    \
       (da)->cap = da_grow_cap(da);                                             \
     }                                                                          \
-    (da)->items = (typeof((da)->items))realloc(                                \
-        (da)->items, (da)->cap * sizeof(*(da)->items));                        \
+    (da)->items = realloc((da)->items, (da)->cap * sizeof(*(da)->items));      \
     assert((da)->items != NULL);                                               \
   } while (0)
 
@@ -33,8 +31,7 @@
       while ((da)->len + items_count > (da)->cap) {                            \
         (da)->cap = da_grow_cap(da);                                           \
       }                                                                        \
-      (da)->items = (typeof((da)->items))realloc(                              \
-          (da)->items, (da)->cap * sizeof(*(da)->items));                      \
+      (da)->items = realloc((da)->items, (da)->cap * sizeof(*(da)->items));    \
       assert((da)->items != NULL);                                             \
     }                                                                          \
     memcpy((da)->items + (da)->len, new_items,                                 \

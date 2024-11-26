@@ -12,18 +12,20 @@ struct entry_indices {
 	uint32_t *indices;
 	int count;
 };
+
+static struct entry_indices *cmp_entry_indices;
 // this cmp function splits entries into two groups: corked and uncorked.  The sorting is stabelized by passing the
 // original order as the context argument, so order within groups doesnt change, only the uncorked streams are brought
 // to the front.
-// data should be a `struct indices {int len; uint32_t *indices;}`
-static int cmp_entry(const void *pa, const void *pb, void *data) {
+// `cmd_entry_indices` needs to be set when running qsort.  This is not threadsafe.
+static int cmp_entry(const void *pa, const void *pb) {
 	const Entry *a = pa;
 	const Entry *b = pb;
 	assert(a->pa_index != b->pa_index);
 	if(a->corked != b->corked) {
 		return a->corked - b->corked;
 	}
-	struct entry_indices *indices = data;
+	struct entry_indices *indices = cmp_entry_indices;
 	int ia = -1;
 	int ib = -1;
 	for(int i = 0; i < indices->count; i++) {
@@ -109,7 +111,7 @@ static void cb_monitor_state(pa_stream *stream, void *data) {
 		}
 		pthread_mutex_unlock(&app.mutex);
 		if (idx == -1) {
-			int err = pa_stream_disconnect(stream);
+			pa_stream_disconnect(stream);
 			pa_stream_unref(stream);
 		}
 	}
@@ -544,7 +546,8 @@ bool app_refresh_entries(App *app) {
 	for(size_t i = 0; i < app->entries.len; i++)
 		indexbuf[i] = app->entries.items[i].pa_index;
 	struct entry_indices indices = {.count = (int)app->entries.len, .indices = indexbuf};
-	qsort_r(app->entries.items, app->entries.len, sizeof(*app->entries.items), cmp_entry, &indices);
+	cmp_entry_indices = &indices;
+	qsort(app->entries.items, app->entries.len, sizeof(*app->entries.items), cmp_entry);
 
 	for (size_t i = 0; i < app->entries.len; i++) {
 		Entry *ent = &app->entries.items[i];

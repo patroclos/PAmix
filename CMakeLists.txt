@@ -5,8 +5,7 @@ configure_file(man/pamix.1.in ${CMAKE_CURRENT_SOURCE_DIR}/man/pamix.1)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS ON)
-string(APPEND CMAKE_C_FLAGS "-D_GNU_SOURCE")
+set(CMAKE_C_EXTENSIONS OFF)
 file(GLOB_RECURSE pamix_SRC
         "src/*.h"
         "src/*.c")
