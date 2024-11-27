@@ -122,6 +122,10 @@ void *reconnect_thread_main(void *arg) {
 		pa_context_state_t state;
 		pthread_mutex_unlock(&app.mutex);
 		while((state = pa_context_get_state(app.pa_context)) != PA_CONTEXT_READY){
+			if(!PA_CONTEXT_IS_GOOD(state)) {
+				pthread_mutex_lock(&app.mutex);
+				goto sleep;
+			}
 			assert(PA_CONTEXT_IS_GOOD(state));
 			pa_threaded_mainloop_wait(app.pa_mainloop);
 		}
@@ -148,7 +152,7 @@ void *reconnect_thread_main(void *arg) {
 	sleep:
 		pthread_mutex_unlock(&app.mutex);
 		pa_threaded_mainloop_unlock(app.pa_mainloop);
-		sleep(5);
+		sleep(2);
 	}
 	return NULL;
 }
