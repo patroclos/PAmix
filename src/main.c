@@ -90,12 +90,17 @@ void *input_thread_main(void *data) {
 	return NULL;
 }
 
+static void reconnect_cleanup_mainloop(void *mainloop) {
+	pa_threaded_mainloop_unlock(mainloop);
+}
+
 void *reconnect_thread_main(void *arg) {
 	(void)arg;
 	while (app.running) {
 		pa_proplist *props;
 		pa_mainloop_api *api;
 		int err;
+		pthread_cleanup_push(reconnect_cleanup_mainloop, app.pa_mainloop);
 		pa_threaded_mainloop_lock(app.pa_mainloop);
 		pthread_mutex_lock(&app.mutex);
 		if (app.pa_context != NULL && pa_context_get_state(app.pa_context) == PA_CONTEXT_READY) {
@@ -152,7 +157,8 @@ void *reconnect_thread_main(void *arg) {
 
 	sleep:
 		pthread_mutex_unlock(&app.mutex);
-		pa_threaded_mainloop_unlock(app.pa_mainloop);
+		// pa_threaded_mainloop_unlock
+		pthread_cleanup_pop(true);
 		sleep(2);
 	}
 	return NULL;
@@ -500,6 +506,18 @@ int main(void) {
 				erase();
 				mvprintw(0, 0, "Waiting for PulseAudio connection...");
 				refresh();
+				for(size_t i = 0; i < app.input_queue.len; i++) {
+					Action action = cfg.keymap[app.input_queue.items[i].keycode];
+					if(action.type == ACTION_QUIT) {
+						app.running = false;
+						break;
+					}
+				}
+				if(!app.running) {
+					pthread_mutex_unlock(&app.mutex);
+					pa_threaded_mainloop_unlock(app.pa_mainloop);
+					break;
+				}
 				app.input_queue.len = 0;
 				pthread_mutex_unlock(&app.mutex);
 				pa_threaded_mainloop_wait(app.pa_mainloop);
