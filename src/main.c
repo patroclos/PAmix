@@ -395,12 +395,18 @@ static bool drain_input_queue(const Config *cfg) {
 					ent.volume.values[app.selected_channel] = PA_VOLUME_NORM * act.data.volume;
 				}
 			} else {
+				int64_t delta = PA_VOLUME_NORM * act.data.volume;
+				int64_t volume = (int64_t)(ent.volume_lock ? pa_cvolume_avg(&ent.volume) : ent.volume.values[app.selected_channel]);
+				volume += delta;
+				if(volume < PA_VOLUME_MUTED)
+					volume = PA_VOLUME_MUTED;
+				else if(volume > (int)(PA_VOLUME_NORM * 1.5f))
+					volume = (int)(PA_VOLUME_NORM * 1.5f);
 				if (ent.volume_lock) {
-					newvol = pa_cvolume_avg(&ent.volume) + PA_VOLUME_NORM * act.data.volume;
-					pa_cvolume_set(&ent.volume, ent.volume.channels, newvol);
+					pa_cvolume_set(&ent.volume, ent.volume.channels, volume);
 				} else {
 					assert(app.selected_channel >= 0 && app.selected_channel < ent.volume.channels);
-					ent.volume.values[app.selected_channel] += PA_VOLUME_NORM * act.data.volume;
+					ent.volume.values[app.selected_channel] = volume;
 				}
 			}
 
