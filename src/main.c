@@ -675,6 +675,8 @@ int main(void) {
 				case ENTRY_CARD:
 				case ENTRY_SINK:
 				case ENTRY_SOURCE: {
+					if (ent->data.ports.current == -1)
+						break;
 					char buf[256];
 					int len;
 					len = sprintf(buf, "%s", ent->data.ports.items[ent->data.ports.current].description);
